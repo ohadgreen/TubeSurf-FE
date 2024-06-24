@@ -1,0 +1,39 @@
+
+.search-results--list {
+    list-style-type: none;
+    margin: 15px 0px;
+    padding: 0;
+}
+
+.video-sr--card {
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: left;
+    width: 100%;
+    margin: 20px 0px;
+    padding: 5px;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+    cursor: pointer;
+}
+
+.video-thumbnail--img {
+    border-radius: 5px;
+}
+
+.video-title--text {
+    font-size: large;
+    padding: 5px 20px;
+}
+
+.video-title--description {
+    font-size: small;
+    padding: 5px 20px;
+}
+
+.video-title--publish {
+    color: rgb(12, 12, 142);
+    font-size: small;
+    padding: 5px 20px;
+}

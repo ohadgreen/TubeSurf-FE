@@ -1,0 +1,12 @@
+.app-container {
+    display: grid;
+    font-size: 16px;
+    grid-template-rows: [header] 40px [body] auto;
+    grid-template-columns: [left-gutter] 1fr [app-content] 12fr [right-gutter] 1fr;
+    grid-gap: 1rem;
+  }
+  
+  .app-content {
+    grid-row: body;
+    grid-column: app-content;
+  }

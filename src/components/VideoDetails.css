@@ -1,0 +1,11 @@
+.video-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    justify-content: space-between;
+    padding: 5px 20px;
+}
+
+.video-stats > div {
+    font-size: medium;
+}
