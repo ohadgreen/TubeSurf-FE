@@ -26,7 +26,7 @@ const VideoSearch = (props) => {
           return { nextPageToken: searchResultsResponse.nextPageToken, items: searchResultsResponse.items };
         });
       });      
-  }, [searchTerm]);
+  }, []);
 
 
   function formatDate(originalDateString) {
@@ -44,7 +44,6 @@ const VideoSearch = (props) => {
     return (
       <li 
         key={item.id.videoId} 
-        // onClick={(e) => handleListItemClick(e, item.id.videoId)}  
         onClick={event => props.onClick(event, item.id.videoId)}
         className="video-sr--card">
         <img

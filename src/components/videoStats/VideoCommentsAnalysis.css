@@ -1,0 +1,64 @@
+.comments--list {
+    list-style-type: none;
+    margin: 15px 0px;
+    padding: 0;
+}
+
+table {
+    width: 50%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    border: 1px solid black;
+    border-radius: 10%;
+    padding: 5px;
+    width: 70%;
+    text-align: left;
+    font-size: small;
+  }
+
+.comment--card {
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: left;
+    width: 100%;
+    margin: 20px 0px;
+    padding: 5px;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+    cursor: pointer;
+}
+
+.comment-author--img {
+    border-radius: 100%;
+}
+
+.comment--text {
+    font-size: small;
+    padding: 5px 20px;
+}
+
+.comment-author {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.comment-author--name {
+    font-size: small;
+    font-weight: bold;
+    padding: 5px 20px;
+}
+
+.comment-author--publish {
+    color: rgb(146, 146, 160);
+    font-size: small;
+    padding: 5px 20px;
+}
+
+.comment--likes {
+    font-size: small;
+    padding: 5px 20px;
+}

@@ -3,10 +3,6 @@
     grid-column: app-content / right-gutter;
     background: hsla(0, 1%, 43%, 0.8);
     padding: 0.5rem;
-    display: grid;    
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-areas: "logo pholder gmenu gmenu gmenu gmenu gmenu user";
     align-items: center;
     color: white;
 }
-
