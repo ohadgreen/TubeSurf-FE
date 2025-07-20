@@ -1,3 +1,41 @@
+.video-comments-analysis-root {
+    width: 100%;
+}
+
+.words-frequency-section {
+    margin-bottom: 20px;
+}
+
+.filter-info {
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.clear-filter-btn {
+    margin-left: 10px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border: none;
+    background: #36A2EB;
+    color: white;
+    border-radius: 4px;
+    font-size: 0.95em;
+    transition: background 0.2s;
+}
+.clear-filter-btn:hover {
+    background: #2286c3;
+}
+
+.chart-container {
+    height: 350px;
+    width: 100%;
+    position: relative;
+}
+
 .comments--list {
     list-style-type: none;
     margin: 15px 0px;

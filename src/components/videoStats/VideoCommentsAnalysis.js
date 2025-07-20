@@ -1,7 +1,26 @@
 import React, { useState, useEffect } from "react";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
 import { formatDateString } from "../../utils/Utils";
 import CommentListItem from "./CommentListItem";
 import "./VideoCommentsAnalysis.css";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const VideoCommentsAnalysis = (props) => {
 
@@ -12,6 +31,8 @@ const VideoCommentsAnalysis = (props) => {
 
     const [initialCommentsSummary, setInitialCommentsSummary] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [filteredComments, setFilteredComments] = useState([]);
+    const [selectedWord, setSelectedWord] = useState(null);
 
     useEffect(() => {
     const fetchData = async () => {
@@ -34,6 +55,10 @@ const VideoCommentsAnalysis = (props) => {
 
         const initialCommentsSummaryResults = await response.json();
         setInitialCommentsSummary(initialCommentsSummaryResults);
+
+        if (initialCommentsSummaryResults && initialCommentsSummaryResults.topRatedComments) {
+            setFilteredComments(initialCommentsSummaryResults.topRatedComments);
+        }
       } catch (err) {
         console.log(err);
       } finally {
@@ -44,30 +69,136 @@ const VideoCommentsAnalysis = (props) => {
     fetchData();
   }, [videoId]);
 
+    // Filter comments based on selected word
+    const filterCommentsByWord = (word) => {
+        if (!initialCommentsSummary) return;
+
+        if (selectedWord === word) {
+            setFilteredComments(initialCommentsSummary.topRatedComments);
+            setSelectedWord(null);
+        } else {
+            const filtered = initialCommentsSummary.topRatedComments.filter(comment => 
+                comment.text && comment.text.toLowerCase().includes(word.toLowerCase())
+            );
+            setFilteredComments(filtered);
+            setSelectedWord(word);
+        }
+    };
+
+    // Handle bar click
+    const handleBarClick = (event, elements) => {
+        if (elements.length > 0) {
+            const elementIndex = elements[0].index;
+            const words = Object.keys(initialCommentsSummary.wordsFrequency);
+            const clickedWord = words[elementIndex];
+            filterCommentsByWord(clickedWord);
+        }
+    };
+
+    if (loading) return <div>Loading...</div>;
+    if (!initialCommentsSummary || !initialCommentsSummary.wordsFrequency) return <div>No data found</div>;
+
+    // Prepare chart data
+    const words = Object.keys(initialCommentsSummary.wordsFrequency);
+    const frequencies = Object.values(initialCommentsSummary.wordsFrequency);
+
+    const chartData = {
+        labels: words,
+        datasets: [
+            {
+                label: 'Word Frequency',
+                data: frequencies,
+                backgroundColor: words.map(word => 
+                    word === selectedWord ? '#ff6384' : '#36A2EB'
+                ), // Highlight selected word
+                borderColor: words.map(word => 
+                    word === selectedWord ? '#ff6384' : '#36A2EB'
+                ),
+                borderWidth: 1,
+                hoverBackgroundColor: '#ffcd56',
+            },
+        ],
+    };
+
+    const chartOptions = {
+        responsive: true,
+        onClick: handleBarClick,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Words Frequency - Click bars to filter comments',
+            },
+            tooltip: {
+                callbacks: {
+                    afterLabel: () => 'Click to filter comments'
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 5,
+                    precision: 0,
+                },
+                grid: {
+                    display: true,
+                },
+            },
+            x: {
+                ticks: {
+                    maxRotation: 45,
+                    minRotation: 45
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+        },
+        animation: {
+            duration: 0
+        }
+    };
+
     if (loading) return <div>Loading...</div>;
     if (!initialCommentsSummary) return <div>No data found</div>;
 
     return (
-        <div>
-            <label>Words Frequency</label>
-            <table>           
-            <tbody>
-              {Object.entries(initialCommentsSummary.wordsFrequency).map(([word, frequency]) => (
-                <tr key={word}>
-                  <td>{word}</td>
-                  <td>{frequency}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        <div className="comments--list">
-          {initialCommentsSummary.topRatedComments.map((comment, index) => (
-            <CommentListItem key={index} comment={{
-              ...comment,
-              publishedAt: formatDateString(comment.publishedAt)
-            }} />
-          ))}
-        </div>
+        <div className="video-comments-analysis-root">
+            <div className="words-frequency-section">
+                <h3>Words Frequency</h3>
+                {selectedWord && (
+                    <div className="filter-info">
+                        <strong>Filtering by: "{selectedWord}"</strong> 
+                        <button 
+                            className="clear-filter-btn"
+                            onClick={() => filterCommentsByWord(selectedWord)}
+                        >
+                            Clear Filter
+                        </button>
+                    </div>
+                )}
+                <div className="chart-container">
+                    <Bar data={chartData} options={chartOptions} height={350} width={800} />
+                </div>
+            </div>
+
+            <div className="comments--list">
+                <h3>Comments ({filteredComments.length})</h3>
+                {filteredComments.length === 0 && selectedWord ? (
+                    <p>No comments found containing the word "{selectedWord}"</p>
+                ) : (
+                    filteredComments.map((comment, index) => (
+                        <CommentListItem key={index} comment={{
+                            ...comment,
+                            publishedAt: formatDateString(comment.publishedAt)
+                        }} />
+                    ))
+                )}
+            </div>
         </div>
     );
 };
