@@ -3,30 +3,8 @@ import YouTube, { YouTubeProps } from "react-youtube";
 import "./VideoPlayer.css";
 
 const VideoPlayer = (props) => {
-  const apiKey = process.env.REACT_APP_YOUTUBE_API_KEY;
-  const videoId = props.videoId;
-
-  let youTubeTotalStatsUrl = `https://youtube.googleapis.com/youtube/v3/videos?key=${apiKey}&part=statistics&id=${videoId}`;
-
-  const [youTubeVideoStats, setYouTubeVideoStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const youTubeStatsResults = await fetch(youTubeTotalStatsUrl).then(
-          (res) => res.json()
-        );
-        setYouTubeVideoStats(youTubeStatsResults.items[0].statistics);
-        setLoading(false);
-      } catch (err) {
-        console.log(err);
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [videoId]);
+  const videoId = props.videoDetails.id;
+  const videoStats = props.videoDetails.statistics;
 
   const opts = {
     height: "300",
@@ -36,15 +14,32 @@ const VideoPlayer = (props) => {
     },
   };
 
+  const trimYouTubeDescription = (description) => {
+    if (!description || typeof description !== 'string') {
+      return '';
+    }
+    
+    const doubleNewlineIndex = description.indexOf('\n\n');
+    
+    if (doubleNewlineIndex === -1) {
+      return description;
+    }
+    
+    return description.substring(0, doubleNewlineIndex);
+  };
+
   const onPlayerReady = (event) => {
     event.target.pauseVideo();
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (!youTubeVideoStats) return <div>No data found</div>;
-
   return (
-    <div className="video--player">
+    <div>
+      <label className="video--title">
+        {props.videoDetails.snippet.title}
+      </label>
+      <div className="video--description">
+        {trimYouTubeDescription(props.videoDetails.snippet.description)}
+      </div>
       <YouTube videoId={videoId} opts={opts} onReady={onPlayerReady} />
       <div className="video--stats">
         <div>
@@ -54,7 +49,7 @@ const VideoPlayer = (props) => {
             height={15}
             alt="views"
           />
-          {" "}{youTubeVideoStats.viewCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+          {" "}{videoStats.viewCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
         </div>
         <div>
         <img
@@ -64,7 +59,7 @@ const VideoPlayer = (props) => {
             alt="likes"
           />
           {" "}
-          {youTubeVideoStats.likeCount
+          {videoStats.likeCount
             .toString()
             .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
         </div>
@@ -76,7 +71,7 @@ const VideoPlayer = (props) => {
             alt="like icon"
           />
           {" "}
-          {youTubeVideoStats.commentCount
+          {videoStats.commentCount
             .toString()
             .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
         </div>

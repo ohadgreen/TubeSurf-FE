@@ -1,0 +1,49 @@
+.comment--card {
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: left;
+    width: 100%;
+    margin: 20px 0px;
+    padding: 5px;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+    cursor: pointer;
+}
+
+.comment-author--img {
+    border-radius: 100%;
+}
+
+.comment--text {
+    font-size: small;
+    padding: 5px 20px;
+}
+
+.comment-author {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.comment-author--name {
+    font-size: small;
+    font-weight: bold;
+    padding: 5px 20px;
+}
+
+.comment-author--publish {
+    color: rgb(146, 146, 160);
+    font-size: small;
+    padding: 5px 20px;
+}
+
+.comment--likes {
+    font-size: small;
+    padding: 5px 20px;
+}
+
+.show-more {
+    color: blue;
+    cursor: pointer;
+} 

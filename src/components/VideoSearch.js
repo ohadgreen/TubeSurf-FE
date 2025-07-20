@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import he from 'he';
 import "./VideoSearch.css";
+import { formatDateString } from '../utils/Utils'; 
 
 const VideoSearch = (props) => {
-  const myApiKey = process.env.REACT_APP_API_KEY;
-  console.log("myApiKey: " + myApiKey);
-
   const searchTerm = props.searchTerm;
   console.log("searchTerm: " + searchTerm);
 
@@ -15,7 +13,6 @@ const VideoSearch = (props) => {
   });
 
   const apiKey = process.env.REACT_APP_YOUTUBE_API_KEY;
-  console.log("apiKey: " + apiKey);
   let searchVideoBaseUrl2 = `https://youtube.googleapis.com/youtube/v3/search?key=${apiKey}&part=snippet&maxResults=10&q=`;
 
   useEffect(() => {
@@ -27,18 +24,6 @@ const VideoSearch = (props) => {
         });
       });      
   }, []);
-
-
-  function formatDate(originalDateString) {
-    var originalDate = new Date(originalDateString);
-
-    var year = originalDate.getFullYear();
-    var month = ("0" + (originalDate.getMonth() + 1)).slice(-2); // Months are zero-based
-    var day = ("0" + originalDate.getDate()).slice(-2);
-
-    var formattedDateString = year + "-" + month + "-" + day;
-    return formattedDateString;
-}
 
   let searchResultsDisplay = searchResults.items.map((item) => {
     return (
@@ -54,7 +39,7 @@ const VideoSearch = (props) => {
         <div className="video-title--main">
           <div className="video-title--text">{he.decode(item.snippet.title)}</div>
           <div className="video-title--description">{item.snippet.description}</div>
-          <div className="video-title--publish">{item.snippet.channelTitle} {formatDate(item.snippet.publishTime)}</div>
+          <div className="video-title--publish">{item.snippet.channelTitle} {formatDateString(item.snippet.publishTime)}</div>
         </div>
       </li>
     );

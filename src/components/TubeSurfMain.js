@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import VideoSearch from "./VideoSearch";
+import VideoDisplayWrapper from "./videoStats/VideoDisplayWrapper";
 import VideoPlayer from "./videoStats/VideoPlayer";
-import VideoCommentsAnalysis from "./videoStats/VideoCommensAnalysis";
+import VideoCommentsAnalysis from "./videoStats/VideoCommentsAnalysis";
 import "./TubeSurfMain.css";
 
 const TubeSurfMain = () => {
@@ -60,7 +61,7 @@ const TubeSurfMain = () => {
       </div>
 
       {showVideoDetails ? (
-        <><VideoPlayer videoId={videoIdToAnalyze} /><VideoCommentsAnalysis videoId={videoIdToAnalyze} /></>
+        <VideoDisplayWrapper videoId={videoIdToAnalyze} />          
       ) : null}
       {showSearchList ? (
         <VideoSearch onClick={videoSetter} searchTerm={searchTerm} />
