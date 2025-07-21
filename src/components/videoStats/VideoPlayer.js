@@ -2,13 +2,16 @@ import React, { useState, useEffect } from "react";
 import YouTube, { YouTubeProps } from "react-youtube";
 import "./VideoPlayer.css";
 
+const MAX_DESCRIPTION_LENGTH = 300;
+
 const VideoPlayer = (props) => {
   const videoId = props.videoDetails.id;
   const videoStats = props.videoDetails.statistics;
+  const [descExpanded, setDescExpanded] = useState(false);
 
   const opts = {
-    height: "300",
-    width: "450",
+    height: "320",
+    width: "480",
     playerVars: {
       autoplay: 0,
     },
@@ -18,13 +21,10 @@ const VideoPlayer = (props) => {
     if (!description || typeof description !== 'string') {
       return '';
     }
-    
     const doubleNewlineIndex = description.indexOf('\n\n');
-    
     if (doubleNewlineIndex === -1) {
       return description;
     }
-    
     return description.substring(0, doubleNewlineIndex);
   };
 
@@ -32,13 +32,29 @@ const VideoPlayer = (props) => {
     event.target.pauseVideo();
   };
 
+  const rawDescription = props.videoDetails.snippet.description;
+  const trimmedDescription = trimYouTubeDescription(rawDescription);
+  const isLong = trimmedDescription.length > MAX_DESCRIPTION_LENGTH;
+  const displayDescription = isLong && !descExpanded
+    ? trimmedDescription.slice(0, MAX_DESCRIPTION_LENGTH) + "... "
+    : trimmedDescription;
+
   return (
-    <div>
+    <div className="video-player-container">
       <label className="video--title">
         {props.videoDetails.snippet.title}
       </label>
       <div className="video--description">
-        {trimYouTubeDescription(props.videoDetails.snippet.description)}
+        {displayDescription}
+        {isLong && (
+          <span
+            className="show-more"
+            style={{ color: 'blue', cursor: 'pointer' }}
+            onClick={() => setDescExpanded((prev) => !prev)}
+          >
+            {descExpanded ? " show less" : " show more..."}
+          </span>
+        )}
       </div>
       <YouTube videoId={videoId} opts={opts} onReady={onPlayerReady} />
       <div className="video--stats">

@@ -22,11 +22,16 @@ ChartJS.register(
   Legend
 );
 
+// Placeholder for SentimentAnalysis component
+const SentimentAnalysis = () => (
+  <div className="sentiment-analysis-placeholder">
+    <h3>Sentiment Analysis</h3>
+    <p>Sentiment analysis results will be displayed here.</p>
+  </div>
+);
+
 const VideoCommentsAnalysis = (props) => {
-
     const videoId = props.videoId;
-    console.log("@@@ videoId: " + videoId);
-
     let commentsListReqUrl = "http://localhost:8081/api/sentiment/commentsList";
 
     const [initialCommentsSummary, setInitialCommentsSummary] = useState(null);
@@ -163,41 +168,48 @@ const VideoCommentsAnalysis = (props) => {
         }
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (!initialCommentsSummary) return <div>No data found</div>;
-
     return (
-        <div className="video-comments-analysis-root">
-            <div className="words-frequency-section">
-                <h3>Words Frequency</h3>
-                {selectedWord && (
-                    <div className="filter-info">
-                        <strong>Filtering by: "{selectedWord}"</strong> 
-                        <button 
-                            className="clear-filter-btn"
-                            onClick={() => filterCommentsByWord(selectedWord)}
-                        >
-                            Clear Filter
-                        </button>
-                    </div>
-                )}
-                <div className="chart-container">
-                    <Bar data={chartData} options={chartOptions} height={350} width={800} />
+        <div className="video-comments-analysis-root layout-2col">
+            <div className="comments-col">
+                <h3>Comments ({filteredComments.length})</h3>
+                <div className="comments--list">
+                    {filteredComments.length === 0 && selectedWord ? (
+                        <p>No comments found containing the word "{selectedWord}"</p>
+                    ) : (
+                        filteredComments.map((comment, index) => (
+                            <CommentListItem key={index} comment={{
+                                ...comment,
+                                publishedAt: formatDateString(comment.publishedAt)
+                            }} />
+                        ))
+                    )}
                 </div>
             </div>
-
-            <div className="comments--list">
-                <h3>Comments ({filteredComments.length})</h3>
-                {filteredComments.length === 0 && selectedWord ? (
-                    <p>No comments found containing the word "{selectedWord}"</p>
-                ) : (
-                    filteredComments.map((comment, index) => (
-                        <CommentListItem key={index} comment={{
-                            ...comment,
-                            publishedAt: formatDateString(comment.publishedAt)
-                        }} />
-                    ))
-                )}
+            <div className="right-col">
+                <div className="words-frequency-row">
+                    <h3>Words Frequency</h3>
+                    {selectedWord && (
+                        <div className="filter-info">
+                            <strong>Filtering by: "{selectedWord}"</strong> 
+                            <button 
+                                className="clear-filter-btn"
+                                onClick={() => filterCommentsByWord(selectedWord)}
+                            >
+                                Clear Filter
+                            </button>
+                        </div>
+                    )}
+                    <div className="chart-container">
+                        <Bar data={chartData} options={chartOptions} />
+                    </div>
+                </div>
+                <div className="sentiment-analysis-row">
+                    <SentimentAnalysis />
+                </div>
+                <div className="placeholder-row">
+                    <h3>Placeholder</h3>
+                    <p>This area will take up the remaining space.</p>
+                </div>
             </div>
         </div>
     );

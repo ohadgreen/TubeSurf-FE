@@ -26,6 +26,7 @@ const TubeSurfMain = () => {
       <div className="search--options">
         <div className="search--option">
           <label>Search by Term</label>
+          <div className="search--input-row">
           <input
             type="text"
             required={false}
@@ -37,10 +38,12 @@ const TubeSurfMain = () => {
             onClick={() => {setShowSearchList(true); setShowVideoDetails(false);}}
             disabled={searchTerm === ""}          
           >Search</button>
+          </div>
         </div>
         <div>Or</div>
         <div className="search--option">
           <label>Search by ID</label>
+          <div className="search--input-row">
           <input
             type="text"
             required={false}
@@ -57,6 +60,7 @@ const TubeSurfMain = () => {
           >
             Search
           </button>
+          </div>
         </div>
       </div>
 
