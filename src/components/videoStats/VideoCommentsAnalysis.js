@@ -46,7 +46,7 @@ const VideoCommentsAnalysis = (props) => {
           userId: "ogreen",
           jobId: "12345",
           videoId: videoId,
-          totalCommentsRequired: 50,
+          totalCommentsRequired: 500,
           commentsInPage: 50
         };
 
@@ -82,9 +82,13 @@ const VideoCommentsAnalysis = (props) => {
             setFilteredComments(initialCommentsSummary.topRatedComments);
             setSelectedWord(null);
         } else {
-            const filtered = initialCommentsSummary.topRatedComments.filter(comment => 
-                comment.text && comment.text.toLowerCase().includes(word.toLowerCase())
-            );
+                const filtered = initialCommentsSummary.topRatedComments.filter(comment => {
+                    if (!comment.text) return false;
+                    
+                    const regex = new RegExp(`\\b${word.toLowerCase()}\\b`, 'i');
+                    return regex.test(comment.text);
+                });
+            
             setFilteredComments(filtered);
             setSelectedWord(word);
         }
@@ -169,10 +173,27 @@ const VideoCommentsAnalysis = (props) => {
     };
 
     return (
-        <div className="video-comments-analysis-root layout-2col">
+        <div className="video-comments-analysis-root layout-3col">
+            <div className="words-frequency-col">
+                <h3>Words Frequency</h3>
+                {selectedWord && (
+                    <div className="filter-info">
+                        <strong>Filtering by: "{selectedWord}"</strong> 
+                        <button 
+                            className="clear-filter-btn"
+                            onClick={() => filterCommentsByWord(selectedWord)}
+                        >
+                            Clear Filter
+                        </button>
+                    </div>
+                )}
+                <div className="chart-container">
+                    <Bar data={chartData} options={chartOptions} />
+                </div>
+            </div>
             <div className="comments-col">
                 <h3>Comments ({filteredComments.length})</h3>
-                <div className="comments--list">
+                <div className="comments--list scrollable-comments-list">
                     {filteredComments.length === 0 && selectedWord ? (
                         <p>No comments found containing the word "{selectedWord}"</p>
                     ) : (
@@ -185,31 +206,8 @@ const VideoCommentsAnalysis = (props) => {
                     )}
                 </div>
             </div>
-            <div className="right-col">
-                <div className="words-frequency-row">
-                    <h3>Words Frequency</h3>
-                    {selectedWord && (
-                        <div className="filter-info">
-                            <strong>Filtering by: "{selectedWord}"</strong> 
-                            <button 
-                                className="clear-filter-btn"
-                                onClick={() => filterCommentsByWord(selectedWord)}
-                            >
-                                Clear Filter
-                            </button>
-                        </div>
-                    )}
-                    <div className="chart-container">
-                        <Bar data={chartData} options={chartOptions} />
-                    </div>
-                </div>
-                <div className="sentiment-analysis-row">
-                    <SentimentAnalysis />
-                </div>
-                <div className="placeholder-row">
-                    <h3>Placeholder</h3>
-                    <p>This area will take up the remaining space.</p>
-                </div>
+            <div className="sentiment-analysis-col">
+                <SentimentAnalysis />
             </div>
         </div>
     );
