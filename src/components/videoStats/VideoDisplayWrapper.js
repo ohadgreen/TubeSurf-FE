@@ -34,7 +34,7 @@ const VideoDisplayWrapper = (props) => {
       if (loading) return <div>Loading...</div>;
 
       return (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             <VideoPlayer videoDetails={videoDetails} />
             <VideoCommentsAnalysis videoId={videoId} />
         </div>

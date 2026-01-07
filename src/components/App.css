@@ -4,9 +4,13 @@
     grid-template-rows: [header] 10px [body] auto;
     grid-template-columns: [left-gutter] 1fr [app-content] 12fr [right-gutter] 1fr;
     grid-gap: 1rem;
+    height: 100vh;
+    overflow: hidden;
   }
   
   .app-content {
     grid-row: body;
     grid-column: app-content;
+    height: 100%;
+    overflow: hidden;
   }

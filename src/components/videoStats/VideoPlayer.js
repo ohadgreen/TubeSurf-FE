@@ -10,8 +10,8 @@ const VideoPlayer = (props) => {
   const [descExpanded, setDescExpanded] = useState(false);
 
   const opts = {
-    height: "320",
-    width: "480",
+    height: "240",
+    width: "360",
     playerVars: {
       autoplay: 0,
     },
@@ -90,6 +90,9 @@ const VideoPlayer = (props) => {
                 alt="comments"
               />
               {" "}Comments: {videoStats.commentCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+            </div>
+            <div style={{ color: 'red', fontSize: '0.9em', marginTop: '8px' }}>
+              videoId: {videoId}
             </div>
           </div>
         </div>

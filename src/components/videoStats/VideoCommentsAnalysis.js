@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -32,65 +32,166 @@ const SentimentAnalysis = () => (
 
 const VideoCommentsAnalysis = (props) => {
     const videoId = props.videoId;
-    let commentsListReqUrl = "http://localhost:8081/api/sentiment/commentsList";
+    const commentsListReqUrl = "http://localhost:8081/api/sentiment/commentsList";
+    const commentsPageReqUrl = "http://localhost:8081/api/comments/page";
 
     const [initialCommentsSummary, setInitialCommentsSummary] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [commentsLoading, setCommentsLoading] = useState(false);
     const [filteredComments, setFilteredComments] = useState([]);
     const [selectedWord, setSelectedWord] = useState(null);
+    const [pageNumber, setPageNumber] = useState(1);
+    const [totalComments, setTotalComments] = useState(0);
+    const [allComments, setAllComments] = useState([]); // Store all comments for filtering
+    const [hasMorePages, setHasMorePages] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    
+    const PAGE_SIZE = 20; // Constant page size
 
+    // Fetch summary data (wordsFrequency)
     useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const payload = {
-          userId: "ogreen",
-          jobId: "12345",
-          videoId: videoId,
-          totalCommentsRequired: 500,
-          commentsInPage: 50
+        const fetchSummary = async () => {
+            try {
+                // Reset state when video changes
+                setAllComments([]);
+                setFilteredComments([]);
+                setPageNumber(1);
+                setSelectedWord(null);
+                setHasMorePages(true);
+                
+                const payload = {
+                    userId: "ogreen",
+                    jobId: "12345",
+                    videoId: videoId,
+                    totalCommentsRequired: 200,
+                    commentsInPage: 50
+                };
+
+                const response = await fetch(commentsListReqUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const initialCommentsSummaryResults = await response.json();
+                setInitialCommentsSummary(initialCommentsSummaryResults);
+            } catch (err) {
+                console.log(err);
+            } finally {
+                setLoading(false);
+            }
         };
 
-        const response = await fetch(commentsListReqUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
+        fetchSummary();
+    }, [videoId]);
 
-        const initialCommentsSummaryResults = await response.json();
-        setInitialCommentsSummary(initialCommentsSummaryResults);
-
-        if (initialCommentsSummaryResults && initialCommentsSummaryResults.topRatedComments) {
-            setFilteredComments(initialCommentsSummaryResults.topRatedComments);
+    // Fetch comments with pagination
+    const fetchComments = useCallback(async (pageNum, pageSizeParam, wordFilter = null, loadMore = false) => {
+        if (loadMore) {
+            setLoadingMore(true);
+        } else {
+            setCommentsLoading(true);
         }
-      } catch (err) {
-        console.log(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+        
+        try {
+            // API uses 0-indexed page numbers, convert from 1-indexed UI
+            const apiPageNumber = pageNum - 1;
+            
+            const params = new URLSearchParams({
+                videoId: videoId,
+                pageNumber: apiPageNumber.toString(),
+                pageSize: pageSizeParam.toString()
+            });
 
-    fetchData();
-  }, [videoId]);
+            const response = await fetch(`${commentsPageReqUrl}?${params.toString()}`);
+            const commentsData = await response.json();
+
+            // API returns Spring Data pagination format:
+            // { content: [], totalElements: number, totalPages: number, number: number (0-indexed), size: number }
+            const comments = Array.isArray(commentsData.content) ? commentsData.content : [];
+            const total = commentsData.totalElements || 0;
+            const totalPages = commentsData.totalPages || Math.ceil(total / pageSizeParam);
+            const isLastPage = commentsData.last !== undefined ? commentsData.last : (pageNum >= totalPages);
+
+            setTotalComments(total);
+            setHasMorePages(!isLastPage);
+
+            // Map API response fields to what CommentListItem expects
+            const mappedComments = comments.map(comment => ({
+                ...comment,
+                text: comment.textDisplay || comment.textOriginal || '',
+                authorName: comment.authorDisplayName || comment.authorName || ''
+            }));
+
+            if (wordFilter) {
+                // Filter comments by word - check both textDisplay and textOriginal
+                const filtered = mappedComments.filter(comment => {
+                    if (!comment || !comment.text) return false;
+                    const regex = new RegExp(`\\b${wordFilter.toLowerCase()}\\b`, 'i');
+                    return regex.test(comment.text);
+                });
+                
+                if (loadMore) {
+                    setFilteredComments(prev => [...prev, ...filtered]);
+                } else {
+                    setFilteredComments(filtered);
+                }
+            } else {
+                if (loadMore) {
+                    setFilteredComments(prev => [...prev, ...mappedComments]);
+                } else {
+                    setFilteredComments(mappedComments);
+                }
+            }
+
+            // Store all fetched comments for client-side filtering when needed
+            if (!wordFilter && Array.isArray(mappedComments)) {
+                setAllComments(prev => {
+                    // Merge with existing comments, avoiding duplicates
+                    const existingIds = new Set(prev.map(c => c.commentId || c.id));
+                    const newComments = mappedComments.filter(c => c && !existingIds.has(c.commentId || c.id));
+                    return [...prev, ...newComments];
+                });
+            }
+        } catch (err) {
+            console.log(err);
+        } finally {
+            if (loadMore) {
+                setLoadingMore(false);
+            } else {
+                setCommentsLoading(false);
+            }
+        }
+    }, [videoId, commentsPageReqUrl]);
+
+    // Fetch comments when component mounts or filter changes (initial load)
+    useEffect(() => {
+        if (!loading && videoId) {
+            setPageNumber(1);
+            setHasMorePages(true);
+            fetchComments(1, PAGE_SIZE, selectedWord, false);
+        }
+    }, [videoId, selectedWord, loading, fetchComments]);
 
     // Filter comments based on selected word
     const filterCommentsByWord = (word) => {
         if (!initialCommentsSummary) return;
 
+        // Clear comments list when filter changes
+        setFilteredComments([]);
+        
         if (selectedWord === word) {
-            setFilteredComments(initialCommentsSummary.topRatedComments);
+            // Clear filter - reset to page 1
             setSelectedWord(null);
+            setPageNumber(1);
+            setHasMorePages(true);
         } else {
-                const filtered = initialCommentsSummary.topRatedComments.filter(comment => {
-                    if (!comment.text) return false;
-                    
-                    const regex = new RegExp(`\\b${word.toLowerCase()}\\b`, 'i');
-                    return regex.test(comment.text);
-                });
-            
-            setFilteredComments(filtered);
+            // Set new filter - will trigger useEffect to fetch filtered comments
             setSelectedWord(word);
+            setPageNumber(1);
+            setHasMorePages(true);
         }
     };
 
@@ -103,6 +204,44 @@ const VideoCommentsAnalysis = (props) => {
             filterCommentsByWord(clickedWord);
         }
     };
+
+    // Load more comments for infinite scroll
+    const loadMoreComments = useCallback(() => {
+        if (!loadingMore && hasMorePages && !commentsLoading && !loading) {
+            const nextPage = pageNumber + 1;
+            setPageNumber(nextPage);
+            fetchComments(nextPage, PAGE_SIZE, selectedWord, true);
+        }
+    }, [loadingMore, hasMorePages, commentsLoading, loading, pageNumber, selectedWord, fetchComments]);
+
+    // Intersection Observer for infinite scroll
+    useEffect(() => {
+        const observerOptions = {
+            root: null,
+            rootMargin: '100px',
+            threshold: 0.1
+        };
+
+        const observerCallback = (entries) => {
+            const [entry] = entries;
+            if (entry.isIntersecting && hasMorePages && !loadingMore && !commentsLoading) {
+                loadMoreComments();
+            }
+        };
+
+        const observer = new IntersectionObserver(observerCallback, observerOptions);
+        const sentinelElement = document.getElementById('scroll-sentinel');
+
+        if (sentinelElement) {
+            observer.observe(sentinelElement);
+        }
+
+        return () => {
+            if (sentinelElement) {
+                observer.unobserve(sentinelElement);
+            }
+        };
+    }, [hasMorePages, loadingMore, commentsLoading, loadMoreComments]);
 
     if (loading) return <div>Loading...</div>;
     if (!initialCommentsSummary || !initialCommentsSummary.wordsFrequency) return <div>No data found</div>;
@@ -131,6 +270,7 @@ const VideoCommentsAnalysis = (props) => {
 
     const chartOptions = {
         responsive: true,
+        maintainAspectRatio: false,
         onClick: handleBarClick,
         plugins: {
             legend: {
@@ -192,17 +332,34 @@ const VideoCommentsAnalysis = (props) => {
                 </div>
             </div>
             <div className="comments-col">
-                <h3>Comments ({filteredComments.length})</h3>
+                <h3>Comments ({selectedWord ? filteredComments.length : totalComments})</h3>
+                {commentsLoading && <div>Loading comments...</div>}
                 <div className="comments--list scrollable-comments-list">
-                    {filteredComments.length === 0 && selectedWord ? (
+                    {!commentsLoading && filteredComments.length === 0 && selectedWord ? (
                         <p>No comments found containing the word "{selectedWord}"</p>
+                    ) : !commentsLoading && filteredComments.length === 0 ? (
+                        <p>No comments found</p>
                     ) : (
-                        filteredComments.map((comment, index) => (
-                            <CommentListItem key={index} comment={{
-                                ...comment,
-                                publishedAt: formatDateString(comment.publishedAt)
-                            }} />
-                        ))
+                        <>
+                            {filteredComments.map((comment, index) => (
+                                <CommentListItem key={comment.commentId || comment.id || index} comment={{
+                                    ...comment,
+                                    publishedAt: formatDateString(comment.publishedAt)
+                                }} />
+                            ))}
+                            {/* Scroll sentinel for infinite scroll */}
+                            <div id="scroll-sentinel" style={{ height: '20px' }}></div>
+                            {loadingMore && (
+                                <div style={{ textAlign: 'center', padding: '20px' }}>
+                                    Loading more comments...
+                                </div>
+                            )}
+                            {!hasMorePages && filteredComments.length > 0 && (
+                                <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                                    No more comments to load
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             </div>
