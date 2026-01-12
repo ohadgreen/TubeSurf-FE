@@ -11,6 +11,7 @@ import {
 import { Bar } from 'react-chartjs-2';
 import { formatDateString } from "../../utils/Utils";
 import CommentListItem from "./CommentListItem";
+import SentimentAnalysis from "./SentimentAnalysis";
 import "./VideoCommentsAnalysis.css";
 
 ChartJS.register(
@@ -22,17 +23,9 @@ ChartJS.register(
   Legend
 );
 
-// Placeholder for SentimentAnalysis component
-const SentimentAnalysis = () => (
-  <div className="sentiment-analysis-placeholder">
-    <h3>Sentiment Analysis</h3>
-    <p>Sentiment analysis results will be displayed here.</p>
-  </div>
-);
-
 const VideoCommentsAnalysis = (props) => {
     const videoId = props.videoId;
-    const commentsListReqUrl = "http://localhost:8081/api/sentiment/commentsList";
+    const commentsListReqUrl = "http://localhost:8081/api/sentiment/getRawVideoComments";
     const commentsPageReqUrl = "http://localhost:8081/api/comments/page";
 
     const [initialCommentsSummary, setInitialCommentsSummary] = useState(null);
@@ -364,7 +357,7 @@ const VideoCommentsAnalysis = (props) => {
                 </div>
             </div>
             <div className="sentiment-analysis-col">
-                <SentimentAnalysis />
+                <SentimentAnalysis videoId={videoId} words={words} />
             </div>
         </div>
     );

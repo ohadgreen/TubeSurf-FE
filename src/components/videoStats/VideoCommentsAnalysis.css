@@ -8,6 +8,7 @@
   min-height: 0;
   gap: 0;
   overflow: hidden;
+  margin-bottom: 40px;
 }
 
 .words-frequency-col {
@@ -91,16 +92,6 @@
     flex-direction: column;
     justify-content: flex-start;
     min-height: 0;
-}
-
-.sentiment-analysis-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: #888;
-    font-style: italic;
 }
 
 .video-comments-analysis-root {

@@ -1,0 +1,33 @@
+.sentiment-analysis-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #888;
+    font-style: italic;
+}
+
+.sentiment-word-dropdown {
+    width: 100%;
+    max-width: 250px;
+    padding: 8px 12px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.sentiment-word-dropdown:hover {
+    border-color: #36A2EB;
+}
+
+.sentiment-word-dropdown:focus {
+    outline: none;
+    border-color: #36A2EB;
+    box-shadow: 0 0 0 2px rgba(54, 162, 235, 0.2);
+}
