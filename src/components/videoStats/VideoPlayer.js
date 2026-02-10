@@ -5,8 +5,8 @@ import "./VideoPlayer.css";
 const MAX_DESCRIPTION_LENGTH = 300;
 
 const VideoPlayer = (props) => {
-  const videoId = props.videoDetails.id;
-  const videoStats = props.videoDetails.statistics;
+  const videoId = props.videoDetails?.id;
+  const videoStats = props.videoDetails?.statistics;
   const [descExpanded, setDescExpanded] = useState(false);
 
   const opts = {
@@ -32,7 +32,7 @@ const VideoPlayer = (props) => {
     event.target.pauseVideo();
   };
 
-  const rawDescription = props.videoDetails.snippet.description;
+  const rawDescription = props.videoDetails?.snippet?.description;
   const trimmedDescription = trimYouTubeDescription(rawDescription);
   const isLong = trimmedDescription.length > MAX_DESCRIPTION_LENGTH;
   const displayDescription = isLong && !descExpanded
@@ -43,7 +43,7 @@ const VideoPlayer = (props) => {
     <div className="video-player-outer-root">
       <div className="video-player-title-row">
         <div className="video--title">
-          {props.videoDetails.snippet.title}
+          {props.videoDetails?.snippet?.title || 'No title available'}
         </div>
       </div>
       <div className="video-player-horizontal-root">
@@ -71,7 +71,7 @@ const VideoPlayer = (props) => {
                 height={15}
                 alt="views"
               />
-              {" "}Views: {videoStats.viewCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+              {" "}Views: {videoStats?.viewCount ? videoStats.viewCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : 'N/A'}
             </div>
             <div>
               <img
@@ -80,7 +80,7 @@ const VideoPlayer = (props) => {
                 height={15}
                 alt="likes"
               />
-              {" "}Likes: {videoStats.likeCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+              {" "}Likes: {videoStats?.likeCount ? videoStats.likeCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : 'N/A'}
             </div>
             <div>
               <img
@@ -89,7 +89,7 @@ const VideoPlayer = (props) => {
                 height={15}
                 alt="comments"
               />
-              {" "}Comments: {videoStats.commentCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+              {" "}Comments: {videoStats?.commentCount ? videoStats.commentCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : 'N/A'}
             </div>
             <div style={{ color: 'red', fontSize: '0.9em', marginTop: '8px' }}>
               videoId: {videoId}

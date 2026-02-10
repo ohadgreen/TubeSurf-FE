@@ -25,25 +25,27 @@ const VideoSearch = (props) => {
       });      
   }, []);
 
-  let searchResultsDisplay = searchResults.items.map((item) => {
-    return (
-      <li 
-        key={item.id.videoId} 
-        onClick={event => props.onClick(event, item.id.videoId)}
-        className="video-sr--card">
-        <img
-          className="video-thumbnail--img"
-          src={item.snippet.thumbnails.default.url}
-          alt="new"
-        />
-        <div className="video-title--main">
-          <div className="video-title--text">{he.decode(item.snippet.title)}</div>
-          <div className="video-title--description">{item.snippet.description}</div>
-          <div className="video-title--publish">{item.snippet.channelTitle} {formatDateString(item.snippet.publishTime)}</div>
-        </div>
-      </li>
-    );
-  });
+  let searchResultsDisplay = searchResults.items
+    .filter(item => item && item.id && item.id.videoId)
+    .map((item) => {
+      return (
+        <li 
+          key={item.id.videoId} 
+          onClick={event => props.onClick(event, item.id.videoId)}
+          className="video-sr--card">
+          <img
+            className="video-thumbnail--img"
+            src={item.snippet?.thumbnails?.default?.url || ''}
+            alt="new"
+          />
+          <div className="video-title--main">
+            <div className="video-title--text">{he.decode(item.snippet?.title || '')}</div>
+            <div className="video-title--description">{item.snippet?.description || ''}</div>
+            <div className="video-title--publish">{item.snippet?.channelTitle || ''} {formatDateString(item.snippet?.publishTime)}</div>
+          </div>
+        </li>
+      );
+    });
 
   return (
     <div className="search--results">      

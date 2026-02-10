@@ -12,6 +12,7 @@ import { Bar } from 'react-chartjs-2';
 import { formatDateString } from "../../utils/Utils";
 import CommentListItem from "./CommentListItem";
 import SentimentAnalysis from "./SentimentAnalysis";
+import VideoPlayer from "./VideoPlayer";
 import "./VideoCommentsAnalysis.css";
 
 ChartJS.register(
@@ -25,6 +26,8 @@ ChartJS.register(
 
 const VideoCommentsAnalysis = (props) => {
     const videoId = props.videoId;
+    const videoTitle = props.videoTitle;
+    const videoDetails = props.videoDetails;
     const commentsListReqUrl = "http://localhost:8081/api/sentiment/getRawVideoComments";
     const commentsPageReqUrl = "http://localhost:8081/api/comments/page";
 
@@ -306,26 +309,12 @@ const VideoCommentsAnalysis = (props) => {
     };
 
     return (
-        <div className="video-comments-analysis-root layout-3col">
-            <div className="words-frequency-col">
-                <h3>Words Frequency</h3>
-                {selectedWord && (
-                    <div className="filter-info">
-                        <strong>Filtering by: "{selectedWord}"</strong> 
-                        <button 
-                            className="clear-filter-btn"
-                            onClick={() => filterCommentsByWord(selectedWord)}
-                        >
-                            Clear Filter
-                        </button>
-                    </div>
-                )}
-                <div className="chart-container">
-                    <Bar data={chartData} options={chartOptions} />
-                </div>
+        <div className="video-comments-analysis-root layout-5col">
+            <div className="video-player-cell">
+                {videoDetails && <VideoPlayer videoDetails={videoDetails} />}
             </div>
             <div className="comments-col">
-                <h3>Comments ({selectedWord ? filteredComments.length : totalComments})</h3>
+                <div className="comments-header">Comments ({selectedWord ? filteredComments.length : totalComments})</div>
                 {commentsLoading && <div>Loading comments...</div>}
                 <div className="comments--list scrollable-comments-list">
                     {!commentsLoading && filteredComments.length === 0 && selectedWord ? (
@@ -356,8 +345,25 @@ const VideoCommentsAnalysis = (props) => {
                     )}
                 </div>
             </div>
+            <div className="words-frequency-col">
+                <h3>Words Frequency</h3>
+                {selectedWord && (
+                    <div className="filter-info">
+                        <strong>Filtering by: "{selectedWord}"</strong> 
+                        <button 
+                            className="clear-filter-btn"
+                            onClick={() => filterCommentsByWord(selectedWord)}
+                        >
+                            Clear Filter
+                        </button>
+                    </div>
+                )}
+                <div className="chart-container">
+                    <Bar data={chartData} options={chartOptions} />
+                </div>
+            </div>
             <div className="sentiment-analysis-col">
-                <SentimentAnalysis videoId={videoId} words={words} />
+                <SentimentAnalysis videoId={videoId} words={words} videoTitle={videoTitle} />
             </div>
         </div>
     );
