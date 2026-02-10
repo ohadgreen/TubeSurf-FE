@@ -44,7 +44,9 @@ const CommentListItem = ({ comment }) => {
             src={`${process.env.PUBLIC_URL}/like.png`}
             width={15}
             height={15}
+            referrerpolicy="no-referrer"
             alt="likes"
+            onError={(e) => e.target.src = '/person-fallback.webp'}
           />
           {comment.likeCount}
         </div>

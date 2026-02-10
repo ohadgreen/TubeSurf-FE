@@ -46,6 +46,9 @@ const VideoCommentsAnalysis = (props) => {
 
     // Fetch summary data (wordsFrequency)
     useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
         const fetchSummary = async () => {
             try {
                 // Reset state when video changes
@@ -68,12 +71,14 @@ const VideoCommentsAnalysis = (props) => {
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
+                    signal
                 });
 
                 const initialCommentsSummaryResults = await response.json();
                 setInitialCommentsSummary(initialCommentsSummaryResults);
             } catch (err) {
+                if (err.name === 'AbortError') return;
                 console.log(err);
             } finally {
                 setLoading(false);
@@ -81,6 +86,7 @@ const VideoCommentsAnalysis = (props) => {
         };
 
         fetchSummary();
+        return () => controller.abort();
     }, [videoId]);
 
     // Fetch comments with pagination
