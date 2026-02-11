@@ -17,6 +17,11 @@ const CommentListItem = ({ comment }) => {
         className="comment-author--img"
         src={comment.authorProfileImageUrl}
         alt="authImg"
+        referrerPolicy="no-referrer"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = `${process.env.PUBLIC_URL}/person-fallback.webp`;
+        }}
       />
       <div className="comment--main">
         <div className="comment-author">
@@ -41,12 +46,10 @@ const CommentListItem = ({ comment }) => {
         </div>
         <div className="comment--likes">
           <img
-            src={`${process.env.PUBLIC_URL}/like.png`}
+            src={`${process.env.PUBLIC_URL || ""}/like.png`}
             width={15}
             height={15}
-            referrerpolicy="no-referrer"
             alt="likes"
-            onError={(e) => e.target.src = '/person-fallback.webp'}
           />
           {comment.likeCount}
         </div>

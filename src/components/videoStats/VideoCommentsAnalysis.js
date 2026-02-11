@@ -81,7 +81,7 @@ const VideoCommentsAnalysis = (props) => {
                 if (err.name === 'AbortError') return;
                 console.log(err);
             } finally {
-                setLoading(false);
+                if (!signal.aborted) setLoading(false);
             }
         };
 
@@ -121,10 +121,11 @@ const VideoCommentsAnalysis = (props) => {
             setHasMorePages(!isLastPage);
 
             // Map API response fields to what CommentListItem expects
+            // API returns: text, authorName, authorProfileImageUrl, likeCount, publishedAt, commentId, sentiment...
             const mappedComments = comments.map(comment => ({
                 ...comment,
-                text: comment.textDisplay || comment.textOriginal || '',
-                authorName: comment.authorDisplayName || comment.authorName || ''
+                text: comment.text || comment.textDisplay || comment.textOriginal || '',
+                authorName: comment.authorName || comment.authorDisplayName || ''
             }));
 
             if (wordFilter) {

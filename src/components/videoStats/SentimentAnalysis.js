@@ -1,23 +1,53 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 import "./SentimentAnalysis.css";
 
+// Plugin to display total by sentiment in the center of the pie chart
+const centerTotalPlugin = {
+    id: 'centerTotal',
+    afterDraw(chart) {
+        if (chart.config.type !== 'pie' || !chart.data.datasets?.[0]?.data?.length) return;
+        const labels = chart.data.labels || ['Positive', 'Negative'];
+        const data = chart.data.datasets[0].data;
+        const colors = chart.data.datasets[0].backgroundColor || ['#4caf50', '#f44336'];
+        const { ctx, chartArea: { left, right, top, bottom } } = chart;
+        const centerX = (left + right) / 2;
+        const centerY = (top + bottom) / 2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 48, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fill();
+        ctx.strokeStyle = '#e0e0e0';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '14px sans-serif';
+        const lineHeight = 22;
+        const startY = centerY - (data.length * lineHeight) / 2 + lineHeight / 2;
+        labels.forEach((label, i) => {
+            const y = startY + i * lineHeight;
+            ctx.fillStyle = colors[i] || '#333';
+            ctx.fillText(`${label}: ${data[i]}`, centerX, y);
+        });
+        ctx.restore();
+    }
+};
+
 ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
+  ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  centerTotalPlugin
 );
 
 const SentimentAnalysis = ({ videoId, words, videoTitle }) => {
@@ -198,26 +228,23 @@ const SentimentAnalysis = ({ videoId, words, videoTitle }) => {
         };
     }, [analysisId, videoId, sentimentSummary?.analysisStatus, fetchSentimentSummary]);
 
-    // Prepare chart data for sentiment summary
+    // Prepare chart data for sentiment summary (POSITIVE and NEGATIVE only)
     const sentimentChartData = sentimentSummary ? {
-        labels: ['Positive', 'Negative', 'Neutral'],
+        labels: ['Positive', 'Negative'],
         datasets: [
             {
                 label: 'Comments Count',
                 data: [
                     sentimentSummary.positiveComments || 0,
-                    sentimentSummary.negativeComments || 0,
-                    sentimentSummary.neutralComments || 0
+                    sentimentSummary.negativeComments || 0
                 ],
                 backgroundColor: [
                     '#4caf50', // Green for Positive
-                    '#f44336', // Red for Negative
-                    '#ff9800'  // Orange for Neutral
+                    '#f44336'  // Red for Negative
                 ],
                 borderColor: [
                     '#4caf50',
-                    '#f44336',
-                    '#ff9800'
+                    '#f44336'
                 ],
                 borderWidth: 1
             }
@@ -229,20 +256,12 @@ const SentimentAnalysis = ({ videoId, words, videoTitle }) => {
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: false
+                display: true,
+                position: 'left'
             },
             title: {
                 display: true,
                 text: 'Sentiment Distribution'
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1,
-                    precision: 0
-                }
             }
         }
     };
@@ -317,8 +336,26 @@ const SentimentAnalysis = ({ videoId, words, videoTitle }) => {
                     )}
                     {sentimentSummary && sentimentChartData && (
                         <div className="sentiment-summary" style={{ marginTop: "20px", padding: "15px", paddingBottom: "20px", border: "1px solid #ddd", borderRadius: "5px" }}>
-                            <div className="sentiment-chart-container">
-                                <Bar data={sentimentChartData} options={sentimentChartOptions} />
+                            <div className="sentiment-chart-and-progress">
+                                <div className="sentiment-chart-container">
+                                    <Pie data={sentimentChartData} options={sentimentChartOptions} />
+                                </div>
+                                <div className="sentiment-neutral-label">
+                                    Neutral: {sentimentSummary.neutralComments ?? 0}
+                                </div>
+                                <div className="sentiment-progress-container">
+                                    <div className="sentiment-progress-label">
+                                        Progress: {sentimentSummary.totalCommentsAnalyzed ?? 0} / {sentimentSummary.totalCommentsToAnalyze ?? commentsToAnalyze}
+                                    </div>
+                                    <div className="sentiment-progress-bar-track">
+                                        <div
+                                            className="sentiment-progress-bar-fill"
+                                            style={{
+                                                width: `${Math.min(100, ((sentimentSummary.totalCommentsAnalyzed ?? 0) / ((sentimentSummary.totalCommentsToAnalyze ?? commentsToAnalyze) || 1)) * 100)}%`
+                                            }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
