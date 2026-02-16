@@ -25,17 +25,19 @@ const TubeSurfMain = () => {
       <div className="search--options">
         <div className="search--option">
           <div className="search--input-row">
-          <input
-            type="text"
-            required={false}
-            placeholder="us elections"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button
-            onClick={() => {setShowSearchList(true); setShowVideoDetails(false);}}
-            disabled={searchTerm === ""}          
-          >Search</button>
+            <input
+              type="text"
+              required={false}
+              placeholder="e.g. us elections, tech news..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <button
+              onClick={() => {setShowSearchList(true); setShowVideoDetails(false);}}
+              disabled={searchTerm === ""}
+            >
+              Search
+            </button>
           </div>
         </div>
       </div>

@@ -61,9 +61,33 @@
     flex-shrink: 0;
 }
 
-.comment--likes {
+.comment--meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
     font-size: small;
     padding: 5px 20px;
+}
+
+.comment--likes {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.comment--sentiment {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.comment--sentiment-square {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
 }
 
 .show-more {

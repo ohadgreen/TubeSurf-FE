@@ -50,7 +50,7 @@ ChartJS.register(
   centerTotalPlugin
 );
 
-const SentimentAnalysis = ({ videoId, words, videoTitle }) => {
+const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => {
     const [selectedWord, setSelectedWord] = useState("");
     const [isCustomWord, setIsCustomWord] = useState(false);
     const [customWordInput, setCustomWordInput] = useState("");
@@ -122,6 +122,7 @@ const SentimentAnalysis = ({ videoId, words, videoTitle }) => {
 
         setIsAnalyzing(true);
         setSentimentSummary(null);
+        onAnalyzeClicked?.(selectedWord);
         
         try {
             const payload = {

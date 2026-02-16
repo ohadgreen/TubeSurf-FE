@@ -42,11 +42,68 @@
   overflow: hidden;
 }
 
+.comments-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
 .comments-header {
   font-size: 1.2em;
   font-weight: bold;
   text-align: center;
-  width: 100%;
+}
+
+.sentiment-filter-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sentiment-filter-btn {
+  padding: 4px 12px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.sentiment-filter-btn:hover {
+  opacity: 0.9;
+}
+
+.sentiment-filter-btn.active {
+  font-weight: bold;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
+}
+
+.sentiment-filter-all {
+  background-color: white;
+  color: #333;
+  border-color: #ccc;
+}
+
+.sentiment-filter-positive {
+  background-color: #22c55e;
+  color: white;
+  border-color: #16a34a;
+}
+
+.sentiment-filter-neutral {
+  background-color: #f97316;
+  color: white;
+  border-color: #ea580c;
+}
+
+.sentiment-filter-negative {
+  background-color: #ef4444;
+  color: white;
+  border-color: #dc2626;
 }
 
 /* Word-frequency: bottom left cell (row 2, col 1) */

@@ -28,6 +28,7 @@ const VideoCommentsAnalysis = (props) => {
     const videoId = props.videoId;
     const videoTitle = props.videoTitle;
     const videoDetails = props.videoDetails;
+    const TOTAL_COMMENTS_REQUIRED = 500;
     const commentsListReqUrl = "http://localhost:8081/api/sentiment/getRawVideoComments";
     const commentsPageReqUrl = "http://localhost:8081/api/comments/page";
 
@@ -41,6 +42,9 @@ const VideoCommentsAnalysis = (props) => {
     const [allComments, setAllComments] = useState([]); // Store all comments for filtering
     const [hasMorePages, setHasMorePages] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [showSentimentFilterButtons, setShowSentimentFilterButtons] = useState(false);
+    const [sentimentFilter, setSentimentFilter] = useState(null); // 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | null
+    const [sentimentObject, setSentimentObject] = useState(null); // The word analyzed (e.g. "love") - required for sentiment filter
     
     const PAGE_SIZE = 20; // Constant page size
 
@@ -57,12 +61,15 @@ const VideoCommentsAnalysis = (props) => {
                 setPageNumber(1);
                 setSelectedWord(null);
                 setHasMorePages(true);
+                setShowSentimentFilterButtons(false);
+                setSentimentFilter(null);
+                setSentimentObject(null);
                 
                 const payload = {
                     userId: "ogreen",
                     jobId: "12345",
                     videoId: videoId,
-                    totalCommentsRequired: 200,
+                    totalCommentsRequired: TOTAL_COMMENTS_REQUIRED,
                     commentsInPage: 50
                 };
 
@@ -90,7 +97,7 @@ const VideoCommentsAnalysis = (props) => {
     }, [videoId]);
 
     // Fetch comments with pagination
-    const fetchComments = useCallback(async (pageNum, pageSizeParam, wordFilter = null, loadMore = false) => {
+    const fetchComments = useCallback(async (pageNum, pageSizeParam, wordFilter = null, sentimentObjectParam = null, sentimentValueParam = null, loadMore = false) => {
         if (loadMore) {
             setLoadingMore(true);
         } else {
@@ -106,6 +113,12 @@ const VideoCommentsAnalysis = (props) => {
                 pageNumber: apiPageNumber.toString(),
                 pageSize: pageSizeParam.toString()
             });
+
+            // Backend expects sentimentObject (the analyzed word) and sentiment (POSITIVE/NEUTRAL/NEGATIVE)
+            if (sentimentObjectParam && sentimentValueParam) {
+                params.append('sentimentObject', sentimentObjectParam);
+                params.append('sentiment', sentimentValueParam);
+            }
 
             const response = await fetch(`${commentsPageReqUrl}?${params.toString()}`);
             const commentsData = await response.json();
@@ -169,14 +182,25 @@ const VideoCommentsAnalysis = (props) => {
         }
     }, [videoId, commentsPageReqUrl]);
 
+    // Handler for sentiment filter button click - triggers new API request
+    const handleSentimentFilterClick = (value) => {
+        // If clicking "All" (null), always clear the filter
+        // Otherwise, toggle the filter (click same button to clear, different button to switch)
+        const newFilter = value === null ? null : (sentimentFilter === value ? null : value);
+        setSentimentFilter(newFilter);
+        setFilteredComments([]);
+        setPageNumber(1);
+        setHasMorePages(true);
+    };
+
     // Fetch comments when component mounts or filter changes (initial load)
     useEffect(() => {
         if (!loading && videoId) {
             setPageNumber(1);
             setHasMorePages(true);
-            fetchComments(1, PAGE_SIZE, selectedWord, false);
+            fetchComments(1, PAGE_SIZE, selectedWord, sentimentObject, sentimentFilter, false);
         }
-    }, [videoId, selectedWord, loading, fetchComments]);
+    }, [videoId, selectedWord, sentimentFilter, sentimentObject, loading, fetchComments]);
 
     // Filter comments based on selected word
     const filterCommentsByWord = (word) => {
@@ -213,9 +237,9 @@ const VideoCommentsAnalysis = (props) => {
         if (!loadingMore && hasMorePages && !commentsLoading && !loading) {
             const nextPage = pageNumber + 1;
             setPageNumber(nextPage);
-            fetchComments(nextPage, PAGE_SIZE, selectedWord, true);
+            fetchComments(nextPage, PAGE_SIZE, selectedWord, sentimentObject, sentimentFilter, true);
         }
-    }, [loadingMore, hasMorePages, commentsLoading, loading, pageNumber, selectedWord, fetchComments]);
+    }, [loadingMore, hasMorePages, commentsLoading, loading, pageNumber, selectedWord, sentimentFilter, sentimentObject, fetchComments]);
 
     // Intersection Observer for infinite scroll
     useEffect(() => {
@@ -321,19 +345,52 @@ const VideoCommentsAnalysis = (props) => {
                 {videoDetails && <VideoPlayer videoDetails={videoDetails} />}
             </div>
             <div className="comments-col">
-                <div className="comments-header">Comments ({selectedWord ? filteredComments.length : totalComments})</div>
+                <div className="comments-header-row">
+                    <div className="comments-header">Comments</div>
+                    {showSentimentFilterButtons && (
+                        <div className="sentiment-filter-buttons">
+                            <button
+                                className={`sentiment-filter-btn sentiment-filter-all ${sentimentFilter === null ? 'active' : ''}`}
+                                onClick={() => handleSentimentFilterClick(null)}
+                            >
+                                All
+                            </button>
+                            <button
+                                className={`sentiment-filter-btn sentiment-filter-positive ${sentimentFilter === 'POSITIVE' ? 'active' : ''}`}
+                                onClick={() => handleSentimentFilterClick('POSITIVE')}
+                            >
+                                Positive
+                            </button>
+                            <button
+                                className={`sentiment-filter-btn sentiment-filter-neutral ${sentimentFilter === 'NEUTRAL' ? 'active' : ''}`}
+                                onClick={() => handleSentimentFilterClick('NEUTRAL')}
+                            >
+                                Neutral
+                            </button>
+                            <button
+                                className={`sentiment-filter-btn sentiment-filter-negative ${sentimentFilter === 'NEGATIVE' ? 'active' : ''}`}
+                                onClick={() => handleSentimentFilterClick('NEGATIVE')}
+                            >
+                                Negative
+                            </button>
+                        </div>
+                    )}
+                </div>
                 {commentsLoading && <div>Loading comments...</div>}
                 <div className="comments--list scrollable-comments-list">
                     {!commentsLoading && filteredComments.length === 0 && selectedWord ? (
                         <p>No comments found containing the word "{selectedWord}"</p>
                     ) : !commentsLoading && filteredComments.length === 0 ? (
                         <p>No comments found</p>
-                    ) : (
+                    ) : null}
+                    {!commentsLoading && filteredComments.length > 0 ? (
                         <>
                             {filteredComments.map((comment, index) => (
                                 <CommentListItem key={comment.commentId || comment.id || index} comment={{
                                     ...comment,
-                                    publishedAt: formatDateString(comment.publishedAt)
+                                    publishedAt: formatDateString(comment.publishedAt),
+                                    // When sentiment filter is active, pass sentiment from parent (API may not include it per comment)
+                                    ...(sentimentFilter && { sentiment: comment.sentiment ?? sentimentFilter })
                                 }} />
                             ))}
                             {/* Scroll sentinel for infinite scroll */}
@@ -343,13 +400,13 @@ const VideoCommentsAnalysis = (props) => {
                                     Loading more comments...
                                 </div>
                             )}
-                            {!hasMorePages && filteredComments.length > 0 && (
+                            {!hasMorePages && (
                                 <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                                     No more comments to load
                                 </div>
                             )}
                         </>
-                    )}
+                    ) : null}
                 </div>
             </div>
             <div className="words-frequency-col">
@@ -370,7 +427,7 @@ const VideoCommentsAnalysis = (props) => {
                 </div>
             </div>
             <div className="sentiment-analysis-col">
-                <SentimentAnalysis videoId={videoId} words={words} videoTitle={videoTitle} />
+                <SentimentAnalysis videoId={videoId} words={words} videoTitle={videoTitle} onAnalyzeClicked={(analyzedWord) => { setShowSentimentFilterButtons(true); setSentimentObject(analyzedWord); }} />
             </div>
         </div>
     );
