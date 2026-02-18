@@ -15,6 +15,7 @@
 .sentiment-analysis-placeholder > h3 {
     flex-shrink: 0;
     margin: 0 0 10px 0;
+    color: #000;
 }
 
 .sentiment-analysis-placeholder > p {
@@ -43,6 +44,106 @@
     outline: none;
     border-color: #36A2EB;
     box-shadow: 0 0 0 2px rgba(54, 162, 235, 0.2);
+}
+
+.sentiment-open-modal-button {
+    margin-top: 12px;
+    background-color: #36A2EB;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    flex-shrink: 0;
+}
+
+.sentiment-open-modal-button:hover {
+    background-color: #2a8dd4;
+    transform: translateY(-1px);
+}
+
+.sentiment-open-modal-button:active {
+    background-color: #1f6fa8;
+    transform: translateY(0);
+}
+
+.sentiment-open-modal-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+}
+
+.sentiment-open-modal-button:disabled:hover {
+    background-color: #cccccc;
+    transform: none;
+}
+
+.sentiment-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.sentiment-modal {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    width: 480px;
+    max-width: 95vw;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.sentiment-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.sentiment-modal-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #222;
+    font-style: normal;
+}
+
+.sentiment-modal-close {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #666;
+    padding: 4px 8px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.sentiment-modal-close:hover {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.sentiment-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sentiment-modal-analyze-row {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
 }
 
 .sentiment-dropdowns-container {
@@ -99,22 +200,72 @@
     transform: none;
 }
 
+/* Multi-chart row layout */
+.sentiment-charts-row {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    gap: 10px;
+    flex: 1 1 0;
+    min-height: 0;
+    align-items: stretch;
+}
+
+.sentiment-chart-slot {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sentiment-analyzing-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    font-size: 13px;
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+    border: 1px dashed #ddd;
+    border-radius: 5px;
+    text-align: center;
+}
+
 .sentiment-summary {
     width: 100%;
-    max-width: 100%;
     box-sizing: border-box;
     flex: 1 1 0;
     min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: visible;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.sentiment-summary-label {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.sentiment-neutral-count {
+    margin-top: 3px;
+    margin-bottom: 3px;
+    text-align: center;
+    font-size: 13px;
+    flex-shrink: 0;
 }
 
 .sentiment-chart-and-progress {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
+    gap: 8px;
     width: 100%;
     flex: 1 1 0;
     min-height: 0;
@@ -122,8 +273,9 @@
 
 .sentiment-chart-container {
     flex: 1 1 0;
-    min-height: 0;
+    min-height: 100px;
     min-width: 0;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -161,6 +313,7 @@
     color: #333;
     font-weight: 500;
 }
+
 
 .sentiment-progress-container {
     flex-shrink: 0;

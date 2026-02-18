@@ -120,6 +120,12 @@
   min-height: 0;
 }
 
+.words-frequency-col h3 {
+  text-align: center;
+  width: 100%;
+  margin: 0 0 10px 0;
+}
+
 /* Sentiment-analysis: two cells between wordsFrequency and comments (row 2, cols 2–3) */
 .sentiment-analysis-col {
   grid-column: 2 / 4;

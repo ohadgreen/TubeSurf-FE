@@ -20,15 +20,45 @@ ChartJS.register(
   Legend
 );
 
+const MAX_ANALYSES = 3;
+
+const SENTIMENT_CHART_OPTIONS = {
+    indexAxis: 'x',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        title: { display: false }
+    },
+    scales: {
+        x: { beginAtZero: true, ticks: { stepSize: 1 } }
+    }
+};
+
+const buildChartData = (sentimentSummary) => ({
+    labels: ['Positive', 'Negative'],
+    datasets: [{
+        label: 'Comments Count',
+        data: [
+            sentimentSummary.positiveComments || 0,
+            sentimentSummary.negativeComments || 0
+        ],
+        backgroundColor: ['#4caf50', '#f44336'],
+        borderColor: ['#4caf50', '#f44336'],
+        borderWidth: 1
+    }]
+});
+
 const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => {
+    const [analyses, setAnalyses] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedWord, setSelectedWord] = useState("");
     const [isCustomWord, setIsCustomWord] = useState(false);
     const [customWordInput, setCustomWordInput] = useState("");
     const [commentsToAnalyze, setCommentsToAnalyze] = useState(50);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [sentimentSummary, setSentimentSummary] = useState(null);
-    const [analysisId, setAnalysisId] = useState(null);
-    const pollingIntervalRef = useRef(null);
+
+    const pollingRefs = useRef({});
+    const analysisIdCounter = useRef(0);
 
     const handleWordChange = (e) => {
         const value = e.target.value;
@@ -52,64 +82,95 @@ const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => 
         setCommentsToAnalyze(Number(e.target.value));
     };
 
-    // Function to fetch sentiment summary
-    const fetchSentimentSummary = useCallback(async (vidId, analysisId) => {
+    const handleOpenModal = () => {
+        setSelectedWord("");
+        setIsCustomWord(false);
+        setCustomWordInput("");
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => setIsModalOpen(false);
+
+    // Cleanup all polling on unmount
+    useEffect(() => {
+        const refs = pollingRefs.current;
+        return () => {
+            Object.values(refs).forEach(interval => clearInterval(interval));
+        };
+    }, []);
+
+    const fetchSentimentSummary = useCallback(async (vidId, aId) => {
         try {
             const summaryResponse = await fetch(
-                `http://localhost:8081/api/sentiment/sentimentOngoingAnalysis/${vidId}/${analysisId}`,
-                {
-                    method: "GET",
-                    headers: {
-                        "accept": "*/*"
-                    }
-                }
+                `http://localhost:8081/api/sentiment/sentimentOngoingAnalysis/${vidId}/${aId}`,
+                { method: "GET", headers: { "accept": "*/*" } }
             );
-
             if (!summaryResponse.ok) {
                 throw new Error(`HTTP error! status: ${summaryResponse.status}`);
             }
-
-            const summaryData = await summaryResponse.json();
-            console.log("Sentiment summary:", summaryData);
-            setSentimentSummary(summaryData);
-            return summaryData;
+            return await summaryResponse.json();
         } catch (err) {
             console.error("Error fetching sentiment summary:", err);
             return null;
         }
     }, []);
 
+    const startPolling = useCallback((slotId, vidId, aId) => {
+        if (pollingRefs.current[slotId]) {
+            clearInterval(pollingRefs.current[slotId]);
+        }
+        pollingRefs.current[slotId] = setInterval(async () => {
+            const summaryData = await fetchSentimentSummary(vidId, aId);
+            if (summaryData) {
+                setAnalyses(prev => prev.map(a =>
+                    a.id === slotId ? { ...a, sentimentSummary: summaryData } : a
+                ));
+                if (summaryData.analysisStatus === "COMPLETED") {
+                    clearInterval(pollingRefs.current[slotId]);
+                    delete pollingRefs.current[slotId];
+                }
+            }
+        }, 3000);
+    }, [fetchSentimentSummary]);
+
     const handleAnalyze = async () => {
         if (!selectedWord) {
             alert("Please select a word to analyze");
             return;
         }
-
         if (!videoId || !videoTitle) {
             alert("Video information is missing");
             return;
         }
 
-        setIsAnalyzing(true);
-        setSentimentSummary(null);
-        onAnalyzeClicked?.(selectedWord);
-        
+        const slotId = ++analysisIdCounter.current;
+        const word = selectedWord;
+        const numComments = commentsToAnalyze;
+
+        setAnalyses(prev => [...prev, {
+            id: slotId,
+            word,
+            commentsToAnalyze: numComments,
+            isAnalyzing: true,
+            sentimentSummary: null,
+            analysisId: null
+        }]);
+        setIsModalOpen(false);
+        onAnalyzeClicked?.(word);
+
         try {
             const payload = {
                 analysisId: "",
-                videoId: videoId,
-                videoTitle: videoTitle,
-                analysisObject: selectedWord,
+                videoId,
+                videoTitle,
+                analysisObject: word,
                 moreInfo: "",
-                totalCommentsToAnalyze: commentsToAnalyze
+                totalCommentsToAnalyze: numComments
             };
 
             const response = await fetch("http://localhost:8081/api/sentiment/analyzeRequest", {
                 method: "POST",
-                headers: {
-                    "accept": "*/*",
-                    "Content-Type": "application/json"
-                },
+                headers: { "accept": "*/*", "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
 
@@ -118,224 +179,182 @@ const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => 
             }
 
             const result = await response.json();
-            console.log("Analysis request successful - full response:", result);
-            console.log("Response type:", typeof result);
-            
-            // Extract analysisId from the response - handle different response formats
             let receivedAnalysisId = null;
-            
-            // Case 1: Response is a string (UUID)
+
             if (typeof result === 'string') {
                 receivedAnalysisId = result;
-            }
-            // Case 2: Response is an object
-            else if (typeof result === 'object' && result !== null) {
+            } else if (typeof result === 'object' && result !== null) {
                 receivedAnalysisId = result.analysisId || result.id || result.uuid || result.analysisUuid;
             }
-            
-            // Also check response headers for Location header (common pattern for created resources)
+
             if (!receivedAnalysisId) {
                 const locationHeader = response.headers.get('Location');
                 if (locationHeader) {
-                    // Extract ID from Location header (e.g., "/api/sentiment/.../uuid")
                     const match = locationHeader.match(/[a-f0-9-]{36}/i);
-                    if (match) {
-                        receivedAnalysisId = match[0];
-                    }
+                    if (match) receivedAnalysisId = match[0];
                 }
             }
-            
+
             if (!receivedAnalysisId) {
-                console.error("Could not extract analysisId. Response structure:", result);
-                throw new Error("Analysis ID not found in response. Check console for response details.");
+                throw new Error("Analysis ID not found in response.");
             }
-            
-            setAnalysisId(receivedAnalysisId);
-            
-            // Make initial GET call to sentimentSummary
-            await fetchSentimentSummary(videoId, receivedAnalysisId);
+
+            const summary = await fetchSentimentSummary(videoId, receivedAnalysisId);
+
+            setAnalyses(prev => prev.map(a =>
+                a.id === slotId
+                    ? { ...a, isAnalyzing: false, analysisId: receivedAnalysisId, sentimentSummary: summary }
+                    : a
+            ));
+
+            if (summary?.analysisStatus !== "COMPLETED") {
+                startPolling(slotId, videoId, receivedAnalysisId);
+            }
         } catch (err) {
             console.error("Error analyzing sentiment:", err);
             alert("Failed to analyze sentiment. Please try again.");
-        } finally {
-            setIsAnalyzing(false);
-        }
-    };
-
-    // Poll for sentiment summary updates every 3 seconds until status is COMPLETED
-    useEffect(() => {
-        // Clear any existing interval
-        if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-        }
-
-        // Only start polling if we have analysisId and status is not COMPLETED
-        if (analysisId && videoId) {
-            const isCompleted = sentimentSummary?.analysisStatus === "COMPLETED";
-            
-            if (!isCompleted) {
-                // Start polling every 3 seconds
-                pollingIntervalRef.current = setInterval(async () => {
-                    const summaryData = await fetchSentimentSummary(videoId, analysisId);
-                    
-                    // Stop polling if status becomes COMPLETED
-                    if (summaryData?.analysisStatus === "COMPLETED") {
-                        if (pollingIntervalRef.current) {
-                            clearInterval(pollingIntervalRef.current);
-                            pollingIntervalRef.current = null;
-                        }
-                    }
-                }, 3000);
-            }
-        }
-
-        // Cleanup function
-        return () => {
-            if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-            }
-        };
-    }, [analysisId, videoId, sentimentSummary?.analysisStatus, fetchSentimentSummary]);
-
-    // Prepare chart data for sentiment summary (POSITIVE and NEGATIVE only)
-    const sentimentChartData = sentimentSummary ? {
-        labels: ['Positive', 'Negative'],
-        datasets: [
-            {
-                label: 'Comments Count',
-                data: [
-                    sentimentSummary.positiveComments || 0,
-                    sentimentSummary.negativeComments || 0
-                ],
-                backgroundColor: [
-                    '#4caf50', // Green for Positive
-                    '#f44336'  // Red for Negative
-                ],
-                borderColor: [
-                    '#4caf50',
-                    '#f44336'
-                ],
-                borderWidth: 1
-            }
-        ]
-    } : null;
-
-    const sentimentChartOptions = {
-        indexAxis: 'y', // Make it horizontal
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            },
-            title: {
-                display: false,
-                text: 'Sentiment Distribution'
-            }
-        },
-        scales: {
-            x: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1
-                }
+            setAnalyses(prev => prev.filter(a => a.id !== slotId));
+            if (pollingRefs.current[slotId]) {
+                clearInterval(pollingRefs.current[slotId]);
+                delete pollingRefs.current[slotId];
             }
         }
     };
+
+    const isAnyAnalyzing = analyses.some(a =>
+        a.isAnalyzing ||
+        (a.sentimentSummary && a.sentimentSummary.analysisStatus !== "COMPLETED")
+    );
+    const canAddMore = analyses.length < MAX_ANALYSES;
+    const slotCount = analyses.length;
 
     return (
         <div className="sentiment-analysis-placeholder">
             <h3>Sentiment Analysis</h3>
             {words && words.length > 0 ? (
                 <>
-                    <div className="sentiment-dropdowns-container">
-                        <div className="sentiment-dropdown-wrapper">
-                            <label htmlFor="word-select" style={{ marginTop: "10px", marginBottom: "5px", display: "block" }}>
-                                Select a word:
-                            </label>
-                            <select
-                                id="word-select"
-                                value={isCustomWord ? "__CUSTOM__" : selectedWord}
-                                onChange={handleWordChange}
-                                className="sentiment-word-dropdown"
-                            >
-                                <option value="">-- Select a word --</option>
-                                {words.map((word, index) => (
-                                    <option key={index} value={word}>
-                                        {word}
-                                    </option>
-                                ))}
-                                <option value="__CUSTOM__">Type custom word...</option>
-                            </select>
-                            {isCustomWord && (
-                                <input
-                                    type="text"
-                                    value={customWordInput}
-                                    onChange={handleCustomWordInputChange}
-                                    placeholder="Enter custom word..."
-                                    className="sentiment-word-dropdown"
-                                    style={{ marginTop: "10px" }}
-                                    autoFocus
-                                />
-                            )}
-                        </div>
-                        <div className="sentiment-dropdown-wrapper">
-                            <label htmlFor="comments-to-analyze-select" style={{ marginTop: "10px", marginBottom: "5px", display: "block" }}>
-                                Comments to analyze:
-                            </label>
-                            <select
-                                id="comments-to-analyze-select"
-                                value={commentsToAnalyze}
-                                onChange={handleCommentsToAnalyzeChange}
-                                className="sentiment-word-dropdown"
-                            >
-                                <option value={50}>50</option>
-                                <option value={100}>100</option>
-                                <option value={500}>500</option>
-                                <option value={1000}>1000</option>
-                            </select>
-                        </div>
-                        <div className="sentiment-button-wrapper">
-                            <button 
-                                className="sentiment-analyze-button" 
-                                style={{ marginTop: "33px" }}
-                                onClick={handleAnalyze}
-                                disabled={isAnalyzing || !selectedWord || !commentsToAnalyze}
-                            >
-                                {isAnalyzing ? "Analyzing..." : "Analyze"}
-                            </button>
-                        </div>
-                    </div>
-                    {sentimentSummary && sentimentChartData && (
-                        <div className="sentiment-summary" style={{ marginTop: "20px", padding: "15px", paddingBottom: "20px", border: "1px solid #ddd", borderRadius: "5px" }}>
-                            <div style={{ fontSize: "14px", color: "#666", marginBottom: "10px", textAlign: "center" }}>
-                                Sentiment for: <strong>{sentimentSummary.analysisObject || selectedWord}</strong>
-                            </div>
-                            <div className="sentiment-chart-and-progress">
-                                <div className="sentiment-chart-container">
-                                    <Bar data={sentimentChartData} options={sentimentChartOptions} />
+                    {isModalOpen && (
+                        <div className="sentiment-modal-overlay" onClick={handleCloseModal}>
+                            <div className="sentiment-modal" onClick={(e) => e.stopPropagation()}>
+                                <div className="sentiment-modal-header">
+                                    <h4 className="sentiment-modal-title">AI Sentiment Analysis</h4>
+                                    <button className="sentiment-modal-close" onClick={handleCloseModal}>✕</button>
                                 </div>
-                                <div className="sentiment-neutral-count" style={{ marginTop: "3px", marginBottom: "3px",  textAlign: "center", fontSize: "14px" }}>
-                                    <span className="sentiment-label-color" style={{ backgroundColor: '#ff9800', display: 'inline-block', marginRight: '5px', width: '10px', height: '10px' }}></span>
-                                    <span className="sentiment-label-text">Neutral: {sentimentSummary.neutralComments ?? 0}</span>
-                                </div>
-                                <div className="sentiment-progress-container">
-                                    <div className="sentiment-progress-label">
-                                        Progress: {sentimentSummary.totalCommentsAnalyzed ?? 0} / {sentimentSummary.totalCommentsToAnalyze ?? commentsToAnalyze}
+                                <div className="sentiment-modal-body">
+                                    <div className="sentiment-dropdowns-container">
+                                        <div className="sentiment-dropdown-wrapper">
+                                            <label htmlFor="word-select" style={{ marginTop: "10px", marginBottom: "5px", display: "block" }}>
+                                                Select a word:
+                                            </label>
+                                            <select
+                                                id="word-select"
+                                                value={isCustomWord ? "__CUSTOM__" : selectedWord}
+                                                onChange={handleWordChange}
+                                                className="sentiment-word-dropdown"
+                                            >
+                                                <option value="">-- Select a word --</option>
+                                                {words.map((word, index) => (
+                                                    <option key={index} value={word}>{word}</option>
+                                                ))}
+                                                <option value="__CUSTOM__">Type custom word...</option>
+                                            </select>
+                                            {isCustomWord && (
+                                                <input
+                                                    type="text"
+                                                    value={customWordInput}
+                                                    onChange={handleCustomWordInputChange}
+                                                    placeholder="Enter custom word..."
+                                                    className="sentiment-word-dropdown"
+                                                    style={{ marginTop: "10px" }}
+                                                    autoFocus
+                                                />
+                                            )}
+                                        </div>
+                                        <div className="sentiment-dropdown-wrapper">
+                                            <label htmlFor="comments-to-analyze-select" style={{ marginTop: "10px", marginBottom: "5px", display: "block" }}>
+                                                Comments to analyze:
+                                            </label>
+                                            <select
+                                                id="comments-to-analyze-select"
+                                                value={commentsToAnalyze}
+                                                onChange={handleCommentsToAnalyzeChange}
+                                                className="sentiment-word-dropdown"
+                                            >
+                                                <option value={50}>50</option>
+                                                <option value={100}>100</option>
+                                                <option value={250}>250</option>
+                                                <option value={500}>500</option>
+                                                <option value={1000}>1000</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="sentiment-progress-bar-track">
-                                        <div
-                                            className="sentiment-progress-bar-fill"
-                                            style={{
-                                                width: `${Math.min(100, ((sentimentSummary.totalCommentsAnalyzed ?? 0) / ((sentimentSummary.totalCommentsToAnalyze ?? commentsToAnalyze) || 1)) * 100)}%`
-                                            }}
-                                        />
+                                    <div className="sentiment-modal-analyze-row">
+                                        <button
+                                            className="sentiment-analyze-button"
+                                            onClick={handleAnalyze}
+                                            disabled={!selectedWord || !commentsToAnalyze}
+                                        >
+                                            Analyze
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {slotCount > 0 && (
+                        <div className={`sentiment-charts-row sentiment-charts-${slotCount}`}>
+                            {analyses.map(analysis => (
+                                <div key={analysis.id} className="sentiment-chart-slot">
+                                    {analysis.isAnalyzing ? (
+                                        <div className="sentiment-analyzing-indicator">
+                                            Analyzing <strong>"{analysis.word}"</strong>…
+                                        </div>
+                                    ) : analysis.sentimentSummary ? (
+                                        <div className="sentiment-summary">
+                                            <div className="sentiment-summary-label">
+                                                Sentiment for: <strong>{analysis.sentimentSummary.analysisObject || analysis.word}</strong>
+                                                {" · "}<strong>{analysis.sentimentSummary.totalCommentsToAnalyze ?? analysis.commentsToAnalyze}</strong>{" comments"}
+                                            </div>
+                                            <div className="sentiment-chart-and-progress">
+                                                <div className="sentiment-chart-container">
+                                                    <Bar data={buildChartData(analysis.sentimentSummary)} options={SENTIMENT_CHART_OPTIONS} />
+                                                </div>
+                                                <div className="sentiment-neutral-count">
+                                                    <span className="sentiment-label-color" style={{ backgroundColor: '#ff9800', display: 'inline-block', marginRight: '5px', width: '10px', height: '10px' }}></span>
+                                                    <span className="sentiment-label-text">Neutral: {analysis.sentimentSummary.neutralComments ?? 0}</span>
+                                                </div>
+                                                {analysis.sentimentSummary.analysisStatus !== "COMPLETED" && (
+                                                    <div className="sentiment-progress-container">
+                                                        <div className="sentiment-progress-label">
+                                                            Progress: {analysis.sentimentSummary.totalCommentsAnalyzed ?? 0} / {analysis.sentimentSummary.totalCommentsToAnalyze ?? analysis.commentsToAnalyze}
+                                                        </div>
+                                                        <div className="sentiment-progress-bar-track">
+                                                            <div
+                                                                className="sentiment-progress-bar-fill"
+                                                                style={{
+                                                                    width: `${Math.min(100, ((analysis.sentimentSummary.totalCommentsAnalyzed ?? 0) / ((analysis.sentimentSummary.totalCommentsToAnalyze ?? analysis.commentsToAnalyze) || 1)) * 100)}%`
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {canAddMore && (
+                        <button
+                            className="sentiment-open-modal-button"
+                            onClick={handleOpenModal}
+                            disabled={isAnyAnalyzing}
+                        >
+                            {isAnyAnalyzing ? "Analyzing…" : "AI sentiment analysis"}
+                        </button>
                     )}
                 </>
             ) : (
