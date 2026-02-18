@@ -1,53 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Chart as ChartJS,
-  ArcElement,
+  CategoryScale,
+  LinearScale,
+  BarElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Pie } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import "./SentimentAnalysis.css";
 
-// Plugin to display total by sentiment in the center of the pie chart
-const centerTotalPlugin = {
-    id: 'centerTotal',
-    afterDraw(chart) {
-        if (chart.config.type !== 'pie' || !chart.data.datasets?.[0]?.data?.length) return;
-        const labels = chart.data.labels || ['Positive', 'Negative'];
-        const data = chart.data.datasets[0].data;
-        const colors = chart.data.datasets[0].backgroundColor || ['#4caf50', '#f44336'];
-        const { ctx, chartArea: { left, right, top, bottom } } = chart;
-        const centerX = (left + right) / 2;
-        const centerY = (top + bottom) / 2;
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 48, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.fill();
-        ctx.strokeStyle = '#e0e0e0';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = '14px sans-serif';
-        const lineHeight = 22;
-        const startY = centerY - (data.length * lineHeight) / 2 + lineHeight / 2;
-        labels.forEach((label, i) => {
-            const y = startY + i * lineHeight;
-            ctx.fillStyle = colors[i] || '#333';
-            ctx.fillText(`${label}: ${data[i]}`, centerX, y);
-        });
-        ctx.restore();
-    }
-};
-
 ChartJS.register(
-  ArcElement,
+  CategoryScale,
+  LinearScale,
+  BarElement,
   Title,
   Tooltip,
-  Legend,
-  centerTotalPlugin
+  Legend
 );
 
 const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => {
@@ -253,16 +223,24 @@ const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => 
     } : null;
 
     const sentimentChartOptions = {
+        indexAxis: 'y', // Make it horizontal
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                display: true,
-                position: 'left'
+                display: false
             },
             title: {
-                display: true,
+                display: false,
                 text: 'Sentiment Distribution'
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
             }
         }
     };
@@ -330,19 +308,18 @@ const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => 
                             </button>
                         </div>
                     </div>
-                    {selectedWord && (
-                        <p style={{ marginTop: "10px" }}>
-                            Selected: <strong>{selectedWord}</strong>
-                        </p>
-                    )}
                     {sentimentSummary && sentimentChartData && (
                         <div className="sentiment-summary" style={{ marginTop: "20px", padding: "15px", paddingBottom: "20px", border: "1px solid #ddd", borderRadius: "5px" }}>
+                            <div style={{ fontSize: "14px", color: "#666", marginBottom: "10px", textAlign: "center" }}>
+                                Sentiment for: <strong>{sentimentSummary.analysisObject || selectedWord}</strong>
+                            </div>
                             <div className="sentiment-chart-and-progress">
                                 <div className="sentiment-chart-container">
-                                    <Pie data={sentimentChartData} options={sentimentChartOptions} />
+                                    <Bar data={sentimentChartData} options={sentimentChartOptions} />
                                 </div>
-                                <div className="sentiment-neutral-label">
-                                    Neutral: {sentimentSummary.neutralComments ?? 0}
+                                <div className="sentiment-neutral-count" style={{ marginTop: "3px", marginBottom: "3px",  textAlign: "center", fontSize: "14px" }}>
+                                    <span className="sentiment-label-color" style={{ backgroundColor: '#ff9800', display: 'inline-block', marginRight: '5px', width: '10px', height: '10px' }}></span>
+                                    <span className="sentiment-label-text">Neutral: {sentimentSummary.neutralComments ?? 0}</span>
                                 </div>
                                 <div className="sentiment-progress-container">
                                     <div className="sentiment-progress-label">

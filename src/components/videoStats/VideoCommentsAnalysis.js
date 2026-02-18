@@ -114,6 +114,11 @@ const VideoCommentsAnalysis = (props) => {
                 pageSize: pageSizeParam.toString()
             });
 
+            // Add keyword parameter for word filtering
+            if (wordFilter) {
+                params.append('keyword', wordFilter);
+            }
+
             // Backend expects sentimentObject (the analyzed word) and sentiment (POSITIVE/NEUTRAL/NEGATIVE)
             if (sentimentObjectParam && sentimentValueParam) {
                 params.append('sentimentObject', sentimentObjectParam);
@@ -141,25 +146,11 @@ const VideoCommentsAnalysis = (props) => {
                 authorName: comment.authorName || comment.authorDisplayName || ''
             }));
 
-            if (wordFilter) {
-                // Filter comments by word - check both textDisplay and textOriginal
-                const filtered = mappedComments.filter(comment => {
-                    if (!comment || !comment.text) return false;
-                    const regex = new RegExp(`\\b${wordFilter.toLowerCase()}\\b`, 'i');
-                    return regex.test(comment.text);
-                });
-                
-                if (loadMore) {
-                    setFilteredComments(prev => [...prev, ...filtered]);
-                } else {
-                    setFilteredComments(filtered);
-                }
+            // Backend handles keyword filtering, so just use the returned comments
+            if (loadMore) {
+                setFilteredComments(prev => [...prev, ...mappedComments]);
             } else {
-                if (loadMore) {
-                    setFilteredComments(prev => [...prev, ...mappedComments]);
-                } else {
-                    setFilteredComments(mappedComments);
-                }
+                setFilteredComments(mappedComments);
             }
 
             // Store all fetched comments for client-side filtering when needed
@@ -301,6 +292,7 @@ const VideoCommentsAnalysis = (props) => {
         onClick: handleBarClick,
         plugins: {
             legend: {
+                display: false,
                 position: 'top',
             },
             title: {

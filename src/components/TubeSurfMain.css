@@ -20,7 +20,7 @@
     min-width: 800px;
     gap: 15px;
     flex-shrink: 0;
-    padding: 16px 0;
+    /* padding: 16px 0; */
 }
 
 .search--option {
