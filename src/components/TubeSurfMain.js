@@ -1,21 +1,21 @@
 import React, { useState } from "react";
 import VideoSearch from "./VideoSearch";
 import VideoDisplayWrapper from "./videoStats/VideoDisplayWrapper";
-import VideoPlayer from "./videoStats/VideoPlayer";
-import VideoCommentsAnalysis from "./videoStats/VideoCommentsAnalysis";
+import LatestAnalysis from "./LatestAnalysis";
 import "./TubeSurfMain.css";
 
 const TubeSurfMain = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [chosenVideoId, setChosenVideoId] = useState("");
   const [videoIdToAnalyze, setVideoIdToAnalyze] = useState("");
+  const [selectedVideoFromSearch, setSelectedVideoFromSearch] = useState(null);
   const [showSearchList, setShowSearchList] = useState(false);
   const [showVideoDetails, setShowVideoDetails] = useState(false);
 
-  const videoSetter = (event, itemId) => {
+  const videoSetter = (event, searchItem) => {
     event.stopPropagation();
-    setChosenVideoId(itemId);
-    setVideoIdToAnalyze(itemId);
+    const id = searchItem?.id?.videoId ?? searchItem;
+    setVideoIdToAnalyze(id);
+    setSelectedVideoFromSearch(typeof searchItem === "object" && searchItem?.id?.videoId ? searchItem : null);
     setShowVideoDetails(true);
     setShowSearchList(false);
   };
@@ -43,10 +43,13 @@ const TubeSurfMain = () => {
       </div>
 
       {showVideoDetails ? (
-        <VideoDisplayWrapper videoId={videoIdToAnalyze} />          
+        <VideoDisplayWrapper videoId={videoIdToAnalyze} selectedVideoFromSearch={selectedVideoFromSearch} />
       ) : null}
       {showSearchList ? (
         <VideoSearch onClick={videoSetter} searchTerm={searchTerm} />
+      ) : null}
+      {!showSearchList && !showVideoDetails ? (
+        <LatestAnalysis />
       ) : null}
     </div>
   );

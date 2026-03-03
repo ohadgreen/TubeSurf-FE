@@ -1,0 +1,259 @@
+.latest-analysis {
+  width: 100%;
+  padding: 24px 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.latest-analysis__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 12px 0;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.latest-analysis__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.latest-analysis__card {
+  background: #fafbfc;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.latest-analysis__card-inner {
+  padding: 0;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Upper third: thumbnail left, title + stats right */
+.latest-analysis__card-header {
+  flex: 0 0 33.333%;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  padding: 6px 10px;
+  gap: 10px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.latest-analysis__card-thumb {
+  width: 120px;
+  min-width: 120px;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  object-fit: cover;
+  display: block;
+  background: #e8e8e8;
+  border-radius: 6px;
+  align-self: center;
+}
+
+.latest-analysis__card-header-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.latest-analysis__card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.latest-analysis__card-stats {
+  font-size: 11px;
+  color: #666;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.latest-analysis__card-stats span {
+  white-space: nowrap;
+}
+
+/* Bottom 2/3: words histogram + sentiment */
+.latest-analysis__card-footer {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  padding: 6px 10px;
+  overflow: hidden;
+}
+
+.latest-analysis__card-footer .latest-analysis__chart-bar-wrap {
+  height: 12px;
+}
+
+.latest-analysis__chart,
+.latest-analysis__sentiment {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.latest-analysis__chart-empty {
+  font-size: 12px;
+  color: #999;
+}
+
+.latest-analysis__chart-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.latest-analysis__chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.latest-analysis__chart-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.latest-analysis__chart-word {
+  width: 48px;
+  min-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #444;
+}
+
+.latest-analysis__chart-bar-wrap {
+  flex: 1;
+  height: 14px;
+  background: #e8e8e8;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.latest-analysis__chart-bar {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 4px;
+  transition: width 0.2s ease;
+}
+
+.latest-analysis__chart-bar--words {
+  background: linear-gradient(90deg, #1a73e8, #4285f4);
+}
+
+.latest-analysis__chart-bar--positive {
+  background: linear-gradient(90deg, #0d8050, #1e8e5a);
+}
+
+.latest-analysis__chart-bar--negative {
+  background: linear-gradient(90deg, #c5221f, #d93025);
+}
+
+/* Sentiment block */
+.latest-analysis__sentiment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.latest-analysis__sentiment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.latest-analysis__sentiment-object {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  text-transform: capitalize;
+}
+
+.latest-analysis__sentiment-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.latest-analysis__sentiment-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+}
+
+.latest-analysis__sentiment-label {
+  width: 56px;
+  min-width: 56px;
+  font-weight: 600;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+}
+
+.latest-analysis__sentiment-label--positive {
+  color: #0d8050;
+}
+
+.latest-analysis__sentiment-label--negative {
+  color: #c5221f;
+}
+
+.latest-analysis__chart-value {
+  width: 24px;
+  text-align: right;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}
+
+.latest-analysis__loading,
+.latest-analysis__error {
+  padding: 24px;
+  text-align: center;
+  color: #666;
+}
+
+.latest-analysis__error {
+  color: #c00;
+}

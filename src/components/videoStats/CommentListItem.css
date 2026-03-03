@@ -93,4 +93,12 @@
 .show-more {
     color: blue;
     cursor: pointer;
+}
+
+.comment--highlight {
+    background-color: #fff176;
+    color: inherit;
+    padding: 0 1px;
+    border-radius: 2px;
+    font-style: normal;
 } 

@@ -28,6 +28,7 @@ const VideoCommentsAnalysis = (props) => {
     const videoId = props.videoId;
     const videoTitle = props.videoTitle;
     const videoDetails = props.videoDetails;
+    const selectedVideoFromSearch = props.selectedVideoFromSearch;
     const TOTAL_COMMENTS_REQUIRED = 500;
     const commentsListReqUrl = "http://localhost:8081/api/sentiment/getRawVideoComments";
     const commentsPageReqUrl = "http://localhost:8081/api/comments/page";
@@ -48,8 +49,10 @@ const VideoCommentsAnalysis = (props) => {
     
     const PAGE_SIZE = 20; // Constant page size
 
-    // Fetch summary data (wordsFrequency)
+    // Fetch summary data (wordsFrequency) - triggers commentsListReqUrl when videoId is set (e.g. search result selected)
     useEffect(() => {
+        if (!videoId) return;
+
         const controller = new AbortController();
         const signal = controller.signal;
 
@@ -331,41 +334,40 @@ const VideoCommentsAnalysis = (props) => {
         }
     };
 
+    // Use API details when available; else use chosen search result (title, description, statistics); else minimal fallback
+    const playerDetails = videoDetails || (videoId && selectedVideoFromSearch ? {
+        id: videoId,
+        snippet: selectedVideoFromSearch.snippet || { title: videoTitle || "Loading...", description: "" },
+        statistics: selectedVideoFromSearch.statistics || {}
+    } : (videoId ? {
+        id: videoId,
+        snippet: { title: videoTitle || "Loading...", description: "" },
+        statistics: {}
+    } : null));
+
     return (
         <div className="video-comments-analysis-root layout-5col">
             <div className="video-player-cell">
-                {videoDetails && <VideoPlayer videoDetails={videoDetails} />}
+                {playerDetails && <VideoPlayer videoDetails={playerDetails} />}
             </div>
             <div className="comments-col">
                 <div className="comments-header-row">
                     <div className="comments-header">Comments</div>
-                    {showSentimentFilterButtons && (
-                        <div className="sentiment-filter-buttons">
-                            <button
-                                className={`sentiment-filter-btn sentiment-filter-all ${sentimentFilter === null ? 'active' : ''}`}
-                                onClick={() => handleSentimentFilterClick(null)}
-                            >
-                                All
-                            </button>
-                            <button
-                                className={`sentiment-filter-btn sentiment-filter-positive ${sentimentFilter === 'POSITIVE' ? 'active' : ''}`}
-                                onClick={() => handleSentimentFilterClick('POSITIVE')}
-                            >
-                                Positive
-                            </button>
-                            <button
-                                className={`sentiment-filter-btn sentiment-filter-neutral ${sentimentFilter === 'NEUTRAL' ? 'active' : ''}`}
-                                onClick={() => handleSentimentFilterClick('NEUTRAL')}
-                            >
-                                Neutral
-                            </button>
-                            <button
-                                className={`sentiment-filter-btn sentiment-filter-negative ${sentimentFilter === 'NEGATIVE' ? 'active' : ''}`}
-                                onClick={() => handleSentimentFilterClick('NEGATIVE')}
-                            >
-                                Negative
-                            </button>
-                        </div>
+                    {(selectedWord || sentimentFilter || sentimentObject) && (
+                        <button
+                            className="clear-filter-btn"
+                            onClick={() => {
+                                setSelectedWord(null);
+                                setSentimentFilter(null);
+                                setSentimentObject(null);
+                                setFilteredComments([]);
+                                setPageNumber(1);
+                                setHasMorePages(true);
+                                fetchComments(1, PAGE_SIZE, null, null, null, false);
+                            }}
+                        >
+                            Clear Filters
+                        </button>
                     )}
                 </div>
                 {commentsLoading && <div>Loading comments...</div>}
@@ -378,12 +380,16 @@ const VideoCommentsAnalysis = (props) => {
                     {!commentsLoading && filteredComments.length > 0 ? (
                         <>
                             {filteredComments.map((comment, index) => (
-                                <CommentListItem key={comment.commentId || comment.id || index} comment={{
-                                    ...comment,
-                                    publishedAt: formatDateString(comment.publishedAt),
-                                    // When sentiment filter is active, pass sentiment from parent (API may not include it per comment)
-                                    ...(sentimentFilter && { sentiment: comment.sentiment ?? sentimentFilter })
-                                }} />
+                                <CommentListItem
+                                    key={comment.commentId || comment.id || index}
+                                    comment={{
+                                        ...comment,
+                                        publishedAt: formatDateString(comment.publishedAt),
+                                        // When sentiment filter is active, pass sentiment from parent (API may not include it per comment)
+                                        ...(sentimentFilter && { sentiment: comment.sentiment ?? sentimentFilter })
+                                    }}
+                                    highlightWord={selectedWord || sentimentObject || undefined}
+                                />
                             ))}
                             {/* Scroll sentinel for infinite scroll */}
                             <div id="scroll-sentinel" style={{ height: '20px' }}></div>
@@ -419,7 +425,29 @@ const VideoCommentsAnalysis = (props) => {
                 </div>
             </div>
             <div className="sentiment-analysis-col">
-                <SentimentAnalysis videoId={videoId} words={words} videoTitle={videoTitle} onAnalyzeClicked={(analyzedWord) => { setShowSentimentFilterButtons(true); setSentimentObject(analyzedWord); }} />
+                <SentimentAnalysis
+                    videoId={videoId}
+                    words={words}
+                    onAnalyzeClicked={(analyzedWord) => { setShowSentimentFilterButtons(true); setSentimentObject(analyzedWord); }}
+                    onAnalysisCompleted={() => {
+                        setSelectedWord(null);
+                        setSentimentFilter(null);
+                        setSentimentObject(null);
+                        setFilteredComments([]);
+                        setPageNumber(1);
+                        setHasMorePages(true);
+                        fetchComments(1, PAGE_SIZE, null, null, null, false);
+                    }}
+                    onSentimentBarClick={(sentimentObj, sentiment) => {
+                        const isSameFilter = sentimentObject === sentimentObj && sentimentFilter === sentiment;
+                        const newFilter = isSameFilter ? null : sentiment;
+                        const newSentimentObj = isSameFilter ? null : sentimentObj;
+                        setSelectedWord(null);
+                        setSentimentObject(newSentimentObj);
+                        setSentimentFilter(newFilter);
+                        setFilteredComments([]);
+                    }}
+                />
             </div>
         </div>
     );

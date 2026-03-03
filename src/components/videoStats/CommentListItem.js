@@ -10,7 +10,18 @@ const SENTIMENT_COLORS = {
   NEUTRAL: '#f97316',
 };
 
-const CommentListItem = ({ comment }) => {
+const highlightText = (text, word) => {
+  if (!word) return text;
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+  return parts.map((part, i) =>
+    part.toLowerCase() === word.toLowerCase()
+      ? <mark key={i} className="comment--highlight">{part}</mark>
+      : part
+  );
+};
+
+const CommentListItem = ({ comment, highlightWord }) => {
   const [expanded, setExpanded] = useState(false);
   const decodedText = he.decode(comment.text);
   const isLong = decodedText.length > MAX_COMMENT_LENGTH;
@@ -41,9 +52,11 @@ const CommentListItem = ({ comment }) => {
           </div>
         </div>
         <div className="comment--text">
-          {isLong && !expanded
-            ? decodedText.slice(0, MAX_COMMENT_LENGTH) + "... "
-            : decodedText}
+          {highlightText(
+            isLong && !expanded ? decodedText.slice(0, MAX_COMMENT_LENGTH) : decodedText,
+            highlightWord
+          )}
+          {isLong && !expanded && "... "}
           {isLong && (
             <span
               className="show-more"

@@ -22,18 +22,38 @@ ChartJS.register(
 
 const MAX_ANALYSES = 3;
 
-const SENTIMENT_CHART_OPTIONS = {
+const SENTIMENT_CHART_BASE_OPTIONS = {
     indexAxis: 'x',
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
         legend: { display: false },
-        title: { display: false }
+        title: { display: false },
+        tooltip: {
+            callbacks: {
+                afterLabel: () => 'Click to filter comments'
+            }
+        }
     },
     scales: {
         x: { beginAtZero: true, ticks: { stepSize: 1 } }
     }
 };
+
+const SENTIMENT_VALUES = ['POSITIVE', 'NEGATIVE'];
+
+const buildChartOptions = (analysis, onSentimentBarClick) => ({
+    ...SENTIMENT_CHART_BASE_OPTIONS,
+    ...(onSentimentBarClick && {
+        onClick: (event, elements) => {
+            if (elements.length > 0) {
+                const sentimentObj = analysis.sentimentSummary?.analysisObject || analysis.word;
+                const clickedSentiment = SENTIMENT_VALUES[elements[0].index];
+                onSentimentBarClick(sentimentObj, clickedSentiment);
+            }
+        }
+    })
+});
 
 const buildChartData = (sentimentSummary) => ({
     labels: ['Positive', 'Negative'],
@@ -49,7 +69,7 @@ const buildChartData = (sentimentSummary) => ({
     }]
 });
 
-const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => {
+const SentimentAnalysis = ({ videoId, words, onAnalyzeClicked, onAnalysisCompleted, onSentimentBarClick }) => {
     const [analyses, setAnalyses] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedWord, setSelectedWord] = useState("");
@@ -128,6 +148,7 @@ const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => 
                 if (summaryData.analysisStatus === "COMPLETED") {
                     clearInterval(pollingRefs.current[slotId]);
                     delete pollingRefs.current[slotId];
+                    onAnalysisCompleted?.();
                 }
             }
         }, 3000);
@@ -138,7 +159,7 @@ const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => 
             alert("Please select a word to analyze");
             return;
         }
-        if (!videoId || !videoTitle) {
+        if (!videoId) {
             alert("Video information is missing");
             return;
         }
@@ -162,7 +183,6 @@ const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => 
             const payload = {
                 analysisId: "",
                 videoId,
-                videoTitle,
                 analysisObject: word,
                 moreInfo: "",
                 totalCommentsToAnalyze: numComments
@@ -209,6 +229,8 @@ const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => 
 
             if (summary?.analysisStatus !== "COMPLETED") {
                 startPolling(slotId, videoId, receivedAnalysisId);
+            } else {
+                onAnalysisCompleted?.();
             }
         } catch (err) {
             console.error("Error analyzing sentiment:", err);
@@ -317,8 +339,8 @@ const SentimentAnalysis = ({ videoId, words, videoTitle, onAnalyzeClicked }) => 
                                                 {" · "}<strong>{analysis.sentimentSummary.totalCommentsToAnalyze ?? analysis.commentsToAnalyze}</strong>{" comments"}
                                             </div>
                                             <div className="sentiment-chart-and-progress">
-                                                <div className="sentiment-chart-container">
-                                                    <Bar data={buildChartData(analysis.sentimentSummary)} options={SENTIMENT_CHART_OPTIONS} />
+                                                <div className="sentiment-chart-container" style={{ cursor: onSentimentBarClick ? 'pointer' : 'default' }}>
+                                                    <Bar data={buildChartData(analysis.sentimentSummary)} options={buildChartOptions(analysis, onSentimentBarClick)} />
                                                 </div>
                                                 <div className="sentiment-neutral-count">
                                                     <span className="sentiment-label-color" style={{ backgroundColor: '#ff9800', display: 'inline-block', marginRight: '5px', width: '10px', height: '10px' }}></span>
