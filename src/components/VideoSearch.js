@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import he from 'he';
 import "./VideoSearch.css";
-import { formatDateString } from '../utils/Utils'; 
+import { formatDateString } from '../utils/Utils';
+import { apiFetch } from '../utils/api';
 
 const VideoSearch = (props) => {
   const searchTerm = props.searchTerm;
@@ -27,7 +28,7 @@ const VideoSearch = (props) => {
     setLoading(true);
     const params = new URLSearchParams({ q: searchTerm });
     const url = `${searchBaseUrl}?${params.toString()}`;
-    fetch(url)
+    apiFetch(url)
       .then((res) => res.json())
       .then((searchResultsResponse) => {
         setSearchResults({
@@ -46,7 +47,7 @@ const VideoSearch = (props) => {
       pageToken: nextPageTokenRef.current,
     });
     const url = `${searchBaseUrl}?${params.toString()}`;
-    fetch(url)
+    apiFetch(url)
       .then((res) => res.json())
       .then((searchResultsResponse) => {
         setSearchResults((prev) => ({

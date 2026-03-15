@@ -37,6 +37,16 @@
   overflow: hidden;
 }
 
+.latest-analysis__card--clickable {
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.latest-analysis__card--clickable:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-color: #ccc;
+}
+
 .latest-analysis__card-inner {
   padding: 0;
   height: 100%;

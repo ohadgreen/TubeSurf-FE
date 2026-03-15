@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { apiFetch } from "../../utils/api";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,9 +27,8 @@ ChartJS.register(
 );
 
 const VideoCommentsAnalysis = (props) => {
+    const auth = useAuth();
     const videoId = props.videoId;
-    const videoTitle = props.videoTitle;
-    const videoDetails = props.videoDetails;
     const selectedVideoFromSearch = props.selectedVideoFromSearch;
     const TOTAL_COMMENTS_REQUIRED = 500;
     const commentsListReqUrl = "http://localhost:8081/api/sentiment/getRawVideoComments";
@@ -39,11 +40,8 @@ const VideoCommentsAnalysis = (props) => {
     const [filteredComments, setFilteredComments] = useState([]);
     const [selectedWord, setSelectedWord] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
-    const [totalComments, setTotalComments] = useState(0);
-    const [allComments, setAllComments] = useState([]); // Store all comments for filtering
     const [hasMorePages, setHasMorePages] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [showSentimentFilterButtons, setShowSentimentFilterButtons] = useState(false);
     const [sentimentFilter, setSentimentFilter] = useState(null); // 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | null
     const [sentimentObject, setSentimentObject] = useState(null); // The word analyzed (e.g. "love") - required for sentiment filter
     
@@ -55,28 +53,28 @@ const VideoCommentsAnalysis = (props) => {
 
         const controller = new AbortController();
         const signal = controller.signal;
+        setLoading(true);
 
         const fetchSummary = async () => {
             try {
-                // Reset state when video changes
-                setAllComments([]);
+                // Reset state when video changes (clear summary so existing sentiment data is not from previous video)
+                setInitialCommentsSummary(null);
                 setFilteredComments([]);
                 setPageNumber(1);
                 setSelectedWord(null);
                 setHasMorePages(true);
-                setShowSentimentFilterButtons(false);
                 setSentimentFilter(null);
                 setSentimentObject(null);
                 
                 const payload = {
-                    userId: "ogreen",
+                    userId: auth.user?.sub || auth.user?.email || "anonymous",
                     jobId: "12345",
                     videoId: videoId,
                     totalCommentsRequired: TOTAL_COMMENTS_REQUIRED,
                     commentsInPage: 50
                 };
 
-                const response = await fetch(commentsListReqUrl, {
+                const response = await apiFetch(commentsListReqUrl, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -128,7 +126,7 @@ const VideoCommentsAnalysis = (props) => {
                 params.append('sentiment', sentimentValueParam);
             }
 
-            const response = await fetch(`${commentsPageReqUrl}?${params.toString()}`);
+            const response = await apiFetch(`${commentsPageReqUrl}?${params.toString()}`);
             const commentsData = await response.json();
 
             // API returns Spring Data pagination format:
@@ -138,7 +136,6 @@ const VideoCommentsAnalysis = (props) => {
             const totalPages = commentsData.totalPages || Math.ceil(total / pageSizeParam);
             const isLastPage = commentsData.last !== undefined ? commentsData.last : (pageNum >= totalPages);
 
-            setTotalComments(total);
             setHasMorePages(!isLastPage);
 
             // Map API response fields to what CommentListItem expects
@@ -154,16 +151,6 @@ const VideoCommentsAnalysis = (props) => {
                 setFilteredComments(prev => [...prev, ...mappedComments]);
             } else {
                 setFilteredComments(mappedComments);
-            }
-
-            // Store all fetched comments for client-side filtering when needed
-            if (!wordFilter && Array.isArray(mappedComments)) {
-                setAllComments(prev => {
-                    // Merge with existing comments, avoiding duplicates
-                    const existingIds = new Set(prev.map(c => c.commentId || c.id));
-                    const newComments = mappedComments.filter(c => c && !existingIds.has(c.commentId || c.id));
-                    return [...prev, ...newComments];
-                });
             }
         } catch (err) {
             console.log(err);
@@ -296,7 +283,6 @@ const VideoCommentsAnalysis = (props) => {
         plugins: {
             legend: {
                 display: false,
-                position: 'top',
             },
             title: {
                 display: true,
@@ -334,16 +320,49 @@ const VideoCommentsAnalysis = (props) => {
         }
     };
 
-    // Use API details when available; else use chosen search result (title, description, statistics); else minimal fallback
-    const playerDetails = videoDetails || (videoId && selectedVideoFromSearch ? {
-        id: videoId,
-        snippet: selectedVideoFromSearch.snippet || { title: videoTitle || "Loading...", description: "" },
-        statistics: selectedVideoFromSearch.statistics || {}
-    } : (videoId ? {
-        id: videoId,
-        snippet: { title: videoTitle || "Loading...", description: "" },
-        statistics: {}
-    } : null));
+    // Derive existing sentiment analyses from getRawVideoComments shortcut (when analysis already in DB)
+    const existingSentimentAnalyses = (() => {
+        const map = initialCommentsSummary?.sentimentAnalysisStatusMap;
+        if (!map || typeof map !== 'object') return undefined;
+        const entries = Object.entries(map);
+        if (entries.length === 0) return undefined;
+        return entries.map(([analysisId, data]) => ({
+            id: `existing-${analysisId}`,
+            word: data.sentimentObject ?? data.analysisObject ?? '',
+            commentsToAnalyze: data.totalCommentsToAnalyze ?? 0,
+            isAnalyzing: false,
+            analysisId,
+            sentimentSummary: {
+                analysisObject: data.sentimentObject ?? data.analysisObject ?? '',
+                positiveComments: data.positiveComments ?? 0,
+                negativeComments: data.negativeComments ?? 0,
+                neutralComments: data.neutralComments ?? 0,
+                totalCommentsToAnalyze: data.totalCommentsToAnalyze ?? 0,
+                totalCommentsAnalyzed: data.totalCommentsAnalyzed ?? 0,
+                analysisStatus: data.analysisStatus ?? 'COMPLETED'
+            }
+        }));
+    })();
+
+    // Build player details from fetch response (getRawVideoComments); fallback to search result or minimal when loading
+    const playerDetails = initialCommentsSummary?.videoId != null
+        ? {
+            id: initialCommentsSummary.videoId,
+            snippet: {
+                title: initialCommentsSummary.videoTitle ?? "Loading...",
+                description: initialCommentsSummary.description ?? ""
+            },
+            statistics: initialCommentsSummary.statistics ?? {}
+        }
+        : (videoId && selectedVideoFromSearch
+            ? {
+                id: videoId,
+                snippet: selectedVideoFromSearch.snippet ?? { title: "Loading...", description: "" },
+                statistics: selectedVideoFromSearch.statistics ?? {}
+              }
+            : videoId
+                ? { id: videoId, snippet: { title: "Loading...", description: "" }, statistics: {} }
+                : null);
 
     return (
         <div className="video-comments-analysis-root layout-5col">
@@ -428,7 +447,8 @@ const VideoCommentsAnalysis = (props) => {
                 <SentimentAnalysis
                     videoId={videoId}
                     words={words}
-                    onAnalyzeClicked={(analyzedWord) => { setShowSentimentFilterButtons(true); setSentimentObject(analyzedWord); }}
+                    existingAnalyses={existingSentimentAnalyses}
+                    onAnalyzeClicked={(analyzedWord) => setSentimentObject(analyzedWord)}
                     onAnalysisCompleted={() => {
                         setSelectedWord(null);
                         setSentimentFilter(null);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./LatestAnalysis.css";
+import { apiFetch } from "../utils/api";
 
 const API_URL = "http://localhost:8081/api/sentiment/latest";
 
@@ -18,7 +19,7 @@ const getTopWords = (wordsFrequency, limit = 5) => {
     .map(([word, count]) => ({ word, count }));
 };
 
-const LatestAnalysis = () => {
+const LatestAnalysis = ({ onCardClick }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,7 +29,7 @@ const LatestAnalysis = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(API_URL);
+        const res = await apiFetch(API_URL);
         if (!res.ok) throw new Error("Failed to fetch latest analysis");
         const data = await res.json();
         setItems(Array.isArray(data) ? data : []);
@@ -74,7 +75,23 @@ const LatestAnalysis = () => {
               )
             : 1;
           return (
-            <div key={item.videoId} className="latest-analysis__card">
+            <div
+              key={item.videoId}
+              className={`latest-analysis__card${onCardClick ? " latest-analysis__card--clickable" : ""}`}
+              role={onCardClick ? "button" : undefined}
+              tabIndex={onCardClick ? 0 : undefined}
+              onClick={onCardClick ? () => onCardClick(item.videoId) : undefined}
+              onKeyDown={
+                onCardClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onCardClick(item.videoId);
+                      }
+                    }
+                  : undefined
+              }
+            >
               <div className="latest-analysis__card-inner">
                 <header className="latest-analysis__card-header">
                   <img

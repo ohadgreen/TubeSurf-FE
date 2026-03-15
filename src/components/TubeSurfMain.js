@@ -20,6 +20,13 @@ const TubeSurfMain = () => {
     setShowSearchList(false);
   };
 
+  const onLatestCardClick = (videoId) => {
+    setVideoIdToAnalyze(videoId);
+    setSelectedVideoFromSearch(null);
+    setShowVideoDetails(true);
+    setShowSearchList(false);
+  };
+
   return (
     <div className="search--main">
       <div className="search--options">
@@ -49,7 +56,7 @@ const TubeSurfMain = () => {
         <VideoSearch onClick={videoSetter} searchTerm={searchTerm} />
       ) : null}
       {!showSearchList && !showVideoDetails ? (
-        <LatestAnalysis />
+        <LatestAnalysis onCardClick={onLatestCardClick} />
       ) : null}
     </div>
   );

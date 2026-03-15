@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { apiFetch } from "../../utils/api";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -69,7 +70,7 @@ const buildChartData = (sentimentSummary) => ({
     }]
 });
 
-const SentimentAnalysis = ({ videoId, words, onAnalyzeClicked, onAnalysisCompleted, onSentimentBarClick }) => {
+const SentimentAnalysis = ({ videoId, words, existingAnalyses, onAnalyzeClicked, onAnalysisCompleted, onSentimentBarClick }) => {
     const [analyses, setAnalyses] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedWord, setSelectedWord] = useState("");
@@ -111,6 +112,18 @@ const SentimentAnalysis = ({ videoId, words, onAnalyzeClicked, onAnalysisComplet
 
     const handleCloseModal = () => setIsModalOpen(false);
 
+    // Reset analyses when video changes
+    useEffect(() => {
+        setAnalyses([]);
+    }, [videoId]);
+
+    // Seed analyses from getRawVideoComments when existing data is returned (shortcut path)
+    useEffect(() => {
+        if (existingAnalyses?.length && analyses.length === 0) {
+            setAnalyses(existingAnalyses);
+        }
+    }, [videoId, existingAnalyses]);
+
     // Cleanup all polling on unmount
     useEffect(() => {
         const refs = pollingRefs.current;
@@ -121,7 +134,7 @@ const SentimentAnalysis = ({ videoId, words, onAnalyzeClicked, onAnalysisComplet
 
     const fetchSentimentSummary = useCallback(async (vidId, aId) => {
         try {
-            const summaryResponse = await fetch(
+            const summaryResponse = await apiFetch(
                 `http://localhost:8081/api/sentiment/sentimentOngoingAnalysis/${vidId}/${aId}`,
                 { method: "GET", headers: { "accept": "*/*" } }
             );
@@ -188,7 +201,7 @@ const SentimentAnalysis = ({ videoId, words, onAnalyzeClicked, onAnalysisComplet
                 totalCommentsToAnalyze: numComments
             };
 
-            const response = await fetch("http://localhost:8081/api/sentiment/analyzeRequest", {
+            const response = await apiFetch("http://localhost:8081/api/sentiment/analyzeRequest", {
                 method: "POST",
                 headers: { "accept": "*/*", "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
